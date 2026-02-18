@@ -19,7 +19,11 @@ Nature-themed, endpoint-agnostic isomorphic problem-solving engine.
 Environment variables:
 
 - `OPENCLAW_BASE_URL` (default: `http://127.0.0.1:18789/v1/chat/completions`)
-- `OPENCLAW_TOKEN` (optional bearer token)
+- `OPENCLAW_TOKEN` (optional bearer token; sent as `Authorization: Bearer ...`)
+- `OPENCLAW_AUTH_HEADER` (optional override, either `Header-Name: value` or raw auth value for `Authorization`)
+- `OPENCLAW_TIMEOUT_MS` (default: `30000`)
+- `OPENCLAW_MAX_RETRIES` (default: `2`; total attempts = retries + 1)
+- `OPENCLAW_RETRY_BASE_MS` (default: `250`; exponential backoff base)
 - `MYCELIUM_MODEL` (default: `sonnet`)
 - `MYCELIUM_BIND` (default: `127.0.0.1:8787`)
 - `MYCELIUM_USE_STUB=1` to force local stub provider

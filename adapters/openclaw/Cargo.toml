@@ -10,5 +10,6 @@ async-trait.workspace = true
 serde.workspace = true
 serde_json.workspace = true
 reqwest = { version = "0.12", default-features = false, features = ["json", "rustls-tls"] }
+tokio.workspace = true
 mycelium-core = { path = "../../crates/mycelium-core" }
 mycelium-types = { path = "../../crates/mycelium-types" }
