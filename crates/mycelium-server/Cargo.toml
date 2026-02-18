@@ -1,5 +1,5 @@
 [package]
-name = "isomorph-server"
+name = "mycelium-server"
 version.workspace = true
 edition.workspace = true
 license.workspace = true
@@ -12,6 +12,8 @@ serde.workspace = true
 serde_json.workspace = true
 tracing.workspace = true
 tracing-subscriber.workspace = true
-isomorph-engine = { path = "../isomorph-engine" }
-isomorph-providers = { path = "../isomorph-providers" }
-isomorph-types = { path = "../isomorph-types" }
+mycelium-core = { path = "../mycelium-core" }
+mycelium-engine = { path = "../mycelium-engine" }
+mycelium-providers = { path = "../mycelium-providers" }
+mycelium-types = { path = "../mycelium-types" }
+openclaw-adapter = { path = "../../adapters/openclaw" }

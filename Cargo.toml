@@ -1,11 +1,11 @@
 [workspace]
 resolver = "2"
 members = [
-  "crates/isomorph-types",
-  "crates/isomorph-core",
-  "crates/isomorph-engine",
-  "crates/isomorph-providers",
-  "crates/isomorph-server",
+  "crates/mycelium-types",
+  "crates/mycelium-core",
+  "crates/mycelium-engine",
+  "crates/mycelium-providers",
+  "crates/mycelium-server",
   "adapters/openclaw",
 ]
 

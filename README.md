@@ -4,14 +4,36 @@ Nature-themed, endpoint-agnostic isomorphic problem-solving engine.
 
 ## Monorepo layout
 
-- `crates/isomorph-types` — shared schemas
-- `crates/isomorph-core` — pure pipeline interfaces
-- `crates/isomorph-engine` — orchestration logic (abstract/search/map/synthesize)
-- `crates/isomorph-providers` — provider trait + adapters
-- `crates/isomorph-server` — API server
-- `adapters/openclaw` — OpenClaw-backed provider adapter
-- `skills/mycelium` — OpenClaw skill wrapper
+- `crates/mycelium-types` — shared schemas
+- `crates/mycelium-core` — provider trait
+- `crates/mycelium-engine` — orchestration
+- `crates/mycelium-providers` — local stub provider
+- `crates/mycelium-server` — HTTP API server (`/health`, `/solve`)
+- `adapters/openclaw` — real OpenClaw-backed provider
+- `skills/mycelium` — OpenClaw skill wrapper docs
 
-## Current status
+## OpenClaw wiring (real)
 
-Scaffold complete. Next step is wiring the OpenClaw adapter to the runtime model interface so the skill can run with existing OpenClaw auth profiles and token routing.
+`openclaw-adapter` calls OpenClaw's Chat Completions endpoint and asks the model to return strict JSON for the Mycelium pipeline fields.
+
+Environment variables:
+
+- `OPENCLAW_BASE_URL` (default: `http://127.0.0.1:18789/v1/chat/completions`)
+- `OPENCLAW_TOKEN` (optional bearer token)
+- `MYCELIUM_MODEL` (default: `sonnet`)
+- `MYCELIUM_BIND` (default: `127.0.0.1:8787`)
+- `MYCELIUM_USE_STUB=1` to force local stub provider
+
+## Run
+
+```bash
+cargo run -p mycelium-server
+curl -X POST http://127.0.0.1:8787/solve \
+  -H 'content-type: application/json' \
+  -d '{"input":"How do I practice trumpet better?"}'
+```
+
+## Notes
+
+- Credentials stay in OpenClaw/runtime env, not frontend apps.
+- Model selection is alias-based (`sonnet`, `opus`, etc.) for portability.

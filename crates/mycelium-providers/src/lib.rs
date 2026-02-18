@@ -1,13 +1,13 @@
 use anyhow::Result;
 use async_trait::async_trait;
-use isomorph_core::ReasoningProvider;
-use isomorph_types::ProblemResponse;
+use mycelium_core::ReasoningProvider;
+use mycelium_types::ProblemResponse;
 
 pub struct StubProvider;
 
 #[async_trait]
 impl ReasoningProvider for StubProvider {
-    async fn solve_with_isomorphism(&self, input: &str) -> Result<ProblemResponse> {
+    async fn solve(&self, input: &str) -> Result<ProblemResponse> {
         Ok(ProblemResponse {
             abstract_shape: format!("Abstract shape for: {input}"),
             cross_domain_matches: vec![

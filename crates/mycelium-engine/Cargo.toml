@@ -1,10 +1,10 @@
 [package]
-name = "isomorph-engine"
+name = "mycelium-engine"
 version.workspace = true
 edition.workspace = true
 license.workspace = true
 
 [dependencies]
-isomorph-core = { path = "../isomorph-core" }
-isomorph-types = { path = "../isomorph-types" }
+mycelium-core = { path = "../mycelium-core" }
+mycelium-types = { path = "../mycelium-types" }
 anyhow.workspace = true

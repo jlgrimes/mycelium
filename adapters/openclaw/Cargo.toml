@@ -6,7 +6,9 @@ license.workspace = true
 
 [dependencies]
 anyhow.workspace = true
+async-trait.workspace = true
 serde.workspace = true
 serde_json.workspace = true
-isomorph-core = { path = "../../crates/isomorph-core" }
-isomorph-types = { path = "../../crates/isomorph-types" }
+reqwest = { version = "0.12", default-features = false, features = ["json", "rustls-tls"] }
+mycelium-core = { path = "../../crates/mycelium-core" }
+mycelium-types = { path = "../../crates/mycelium-types" }

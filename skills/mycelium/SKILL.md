@@ -5,8 +5,7 @@ metadata:
   {
     "openclaw":
       {
-        "emoji": "🍄",
-        "requires": { "bins": ["cargo"] }
+        "emoji": "🍄"
       }
   }
 ---
@@ -24,16 +23,18 @@ Mycelium treats domains as skins over shared problem structure.
 
 ## Runtime target
 
-This skill is intended to call the OpenClaw-backed adapter once wired.
+Use the `mycelium-server` crate with `openclaw-adapter` to route inference through OpenClaw's model runtime (alias-based), not app-level provider keys.
 
 ## Local dev
 
 ```bash
-cargo run -p isomorph-server
+cargo run -p mycelium-server
 # POST http://127.0.0.1:8787/solve
 ```
 
-## Notes
+## Environment
 
-- Keep provider credentials in OpenClaw, not app-level env files.
-- Use model aliases (`sonnet`, `opus`, `gemini-flash`) rather than provider-specific hardcoding.
+- `OPENCLAW_BASE_URL` (default `http://127.0.0.1:18789/v1/chat/completions`)
+- `OPENCLAW_TOKEN` (optional)
+- `MYCELIUM_MODEL` (default `sonnet`)
+- `MYCELIUM_USE_STUB=1` for offline stub mode
