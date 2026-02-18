@@ -1,0 +1,10 @@
+[package]
+name = "isomorph-engine"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+
+[dependencies]
+isomorph-core = { path = "../isomorph-core" }
+isomorph-types = { path = "../isomorph-types" }
+anyhow.workspace = true
