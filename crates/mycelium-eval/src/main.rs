@@ -1,6 +1,6 @@
 use mycelium_eval::{
     actionability_delta, load_snapshot, write_snapshot, ActionabilitySnapshot, BenchmarkSuite,
-    EvalConfig, EvalRunner, RunMode, ScoreReport, DEBUGGING_V1_CASES, SEED_CASES,
+    EvalConfig, EvalRunner, RunMode, ScoreReport, DEBUGGING_V1_CASES, ISOMORPHIC_TRANSFER_CASES, SEED_CASES,
 };
 use mycelium_providers::StubProvider;
 use std::path::Path;
@@ -61,8 +61,10 @@ fn print_comparison(baseline: &ScoreReport, staged: &ScoreReport) {
 
 fn parse_suite(args: &[String]) -> BenchmarkSuite {
     if let Some(value) = args.windows(2).find(|w| w[0] == "--suite").map(|w| &w[1]) {
-        if value == "debugging-v1" {
-            return BenchmarkSuite::DebuggingV1;
+        match value.as_str() {
+            "debugging-v1" => return BenchmarkSuite::DebuggingV1,
+            "isomorphic-transfer" => return BenchmarkSuite::IsomorphicTransfer,
+            _ => {}
         }
     }
     BenchmarkSuite::Seed
@@ -93,6 +95,7 @@ async fn main() -> anyhow::Result<()> {
         let cases = match suite {
             BenchmarkSuite::Seed => SEED_CASES,
             BenchmarkSuite::DebuggingV1 => DEBUGGING_V1_CASES,
+            BenchmarkSuite::IsomorphicTransfer => ISOMORPHIC_TRANSFER_CASES,
         };
         println!(
             "Available benchmark cases for suite `{suite}` ({}):",

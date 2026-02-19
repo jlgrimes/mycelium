@@ -1,4 +1,4 @@
-use crate::benchmark::{BenchmarkCase, DEBUGGING_V1_CASES, SEED_CASES};
+use crate::benchmark::{BenchmarkCase, DEBUGGING_V1_CASES, ISOMORPHIC_TRANSFER_CASES, SEED_CASES};
 use crate::scoring::{EvalResult, ScoreReport, Scorer};
 use mycelium_core::ReasoningProvider;
 use mycelium_engine::Engine;
@@ -24,6 +24,7 @@ pub enum BenchmarkSuite {
     #[default]
     Seed,
     DebuggingV1,
+    IsomorphicTransfer,
 }
 
 impl std::fmt::Display for BenchmarkSuite {
@@ -31,6 +32,7 @@ impl std::fmt::Display for BenchmarkSuite {
         match self {
             BenchmarkSuite::Seed => write!(f, "seed"),
             BenchmarkSuite::DebuggingV1 => write!(f, "debugging-v1"),
+            BenchmarkSuite::IsomorphicTransfer => write!(f, "isomorphic-transfer"),
         }
     }
 }
@@ -81,6 +83,7 @@ impl EvalRunner {
         let all_cases: &[BenchmarkCase] = match config.suite {
             BenchmarkSuite::Seed => SEED_CASES,
             BenchmarkSuite::DebuggingV1 => DEBUGGING_V1_CASES,
+            BenchmarkSuite::IsomorphicTransfer => ISOMORPHIC_TRANSFER_CASES,
         };
 
         match &config.filter {
@@ -117,6 +120,19 @@ mod tests {
             })
             .await;
         assert_eq!(report.cases_total, 10);
+    }
+
+    #[tokio::test]
+    async fn runner_processes_all_isomorphic_transfer_cases() {
+        let provider = Arc::new(StubProvider);
+        let runner = EvalRunner::new(provider, RunMode::Baseline);
+        let report = runner
+            .run(&EvalConfig {
+                suite: BenchmarkSuite::IsomorphicTransfer,
+                filter: None,
+            })
+            .await;
+        assert_eq!(report.cases_total, 12);
     }
 
     #[tokio::test]

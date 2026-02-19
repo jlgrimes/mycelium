@@ -157,6 +157,94 @@ pub const SEED_CASES: &[BenchmarkCase] = &[
     },
 ];
 
+/// 12 isomorphic transfer regression cases for KR3 evaluation.
+pub const ISOMORPHIC_TRANSFER_CASES: &[BenchmarkCase] = &[
+    BenchmarkCase {
+        id: "transfer-music-to-code",
+        input: "Apply practice chunking techniques from music to learning programming.",
+        expect_abstract: &["segmentation", "repetition", "mastery"],
+        expect_min_matches: 3,
+        expect_keywords: &["isolate", "drill", "integrate"],
+    },
+    BenchmarkCase {
+        id: "transfer-cooking-to-pm",
+        input: "Use mise en place principles to improve project management.",
+        expect_abstract: &["preparation", "organization", "workflow"],
+        expect_min_matches: 3,
+        expect_keywords: &["setup", "dependency", "execute"],
+    },
+    BenchmarkCase {
+        id: "transfer-immune-to-security",
+        input: "Apply immune system recognition patterns to network intrusion detection.",
+        expect_abstract: &["recognition", "adaptation", "memory"],
+        expect_min_matches: 3,
+        expect_keywords: &["pattern", "anomaly", "learn"],
+    },
+    BenchmarkCase {
+        id: "transfer-jazz-to-agile",
+        input: "Transfer jazz improvisation principles to agile team coordination.",
+        expect_abstract: &["improvisation", "structure", "coordination"],
+        expect_min_matches: 3,
+        expect_keywords: &["framework", "responsive", "rhythm"],
+    },
+    BenchmarkCase {
+        id: "transfer-forest-to-architecture",
+        input: "Use forest succession patterns to design software system evolution.",
+        expect_abstract: &["succession", "phases", "resilience"],
+        expect_min_matches: 3,
+        expect_keywords: &["pioneer", "mature", "stable"],
+    },
+    BenchmarkCase {
+        id: "transfer-chess-to-negotiation",
+        input: "Apply chess strategic principles to business negotiations.",
+        expect_abstract: &["strategy", "position", "exchange"],
+        expect_min_matches: 3,
+        expect_keywords: &["tempo", "sacrifice", "endgame"],
+    },
+    BenchmarkCase {
+        id: "transfer-garden-to-community",
+        input: "Transfer permaculture principles to online community building.",
+        expect_abstract: &["ecosystem", "diversity", "sustainability"],
+        expect_min_matches: 3,
+        expect_keywords: &["guilds", "succession", "observe"],
+    },
+    BenchmarkCase {
+        id: "transfer-athlete-to-startup",
+        input: "Use athletic training periodization for startup growth phases.",
+        expect_abstract: &["periodization", "adaptation", "recovery"],
+        expect_min_matches: 3,
+        expect_keywords: &["base", "intensity", "taper"],
+    },
+    BenchmarkCase {
+        id: "transfer-ant-to-distributed",
+        input: "Apply ant colony optimization to distributed system load balancing.",
+        expect_abstract: &["emergence", "stigmergy", "optimization"],
+        expect_min_matches: 3,
+        expect_keywords: &["pheromone", "trail", "converge"],
+    },
+    BenchmarkCase {
+        id: "transfer-theater-to-ui",
+        input: "Transfer theatrical staging principles to user interface design.",
+        expect_abstract: &["staging", "focus", "narrative"],
+        expect_min_matches: 3,
+        expect_keywords: &["attention", "flow", "scene"],
+    },
+    BenchmarkCase {
+        id: "transfer-ecology-to-microservices",
+        input: "Use ecological niche theory to optimize microservice boundaries.",
+        expect_abstract: &["specialization", "niche", "coevolution"],
+        expect_min_matches: 3,
+        expect_keywords: &["resource", "boundary", "interface"],
+    },
+    BenchmarkCase {
+        id: "transfer-memory-to-caching",
+        input: "Apply human memory consolidation to database caching strategies.",
+        expect_abstract: &["consolidation", "hierarchy", "decay"],
+        expect_min_matches: 3,
+        expect_keywords: &["rehearsal", "priority", "eviction"],
+    },
+];
+
 /// 10 debugging-focused cases for wedge v1 evaluation.
 pub const DEBUGGING_V1_CASES: &[BenchmarkCase] = &[
     BenchmarkCase {
@@ -266,20 +354,27 @@ mod tests {
     }
 
     #[test]
+    fn isomorphic_transfer_cases_has_12_entries() {
+        assert_eq!(ISOMORPHIC_TRANSFER_CASES.len(), 12);
+    }
+
+    #[test]
     fn all_ids_unique() {
         let mut ids: Vec<&str> = SEED_CASES
             .iter()
             .chain(DEBUGGING_V1_CASES.iter())
+            .chain(ISOMORPHIC_TRANSFER_CASES.iter())
             .map(|c| c.id)
             .collect();
         ids.sort_unstable();
         ids.dedup();
-        assert_eq!(ids.len(), SEED_CASES.len() + DEBUGGING_V1_CASES.len());
+        assert_eq!(ids.len(), SEED_CASES.len() + DEBUGGING_V1_CASES.len() + ISOMORPHIC_TRANSFER_CASES.len());
     }
 
     #[test]
     fn all_cases_have_expectations() {
         assert_case_shape(SEED_CASES);
         assert_case_shape(DEBUGGING_V1_CASES);
+        assert_case_shape(ISOMORPHIC_TRANSFER_CASES);
     }
 }
