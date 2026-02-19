@@ -71,11 +71,12 @@ async fn solve_debug(
     Json(req): Json<ProblemRequest>,
 ) -> Result<Json<ProblemResponse>, (axum::http::StatusCode, Json<ErrorResponse>)> {
     let debug_prompt = format!(
-        "You are solving a software debugging problem. Use Loop Escape Protocol: detect loop risk, pivot to an isomorphic frame, map back to code, and include explicit verification steps.\n\nProblem:\n{}",
+        "You are solving a software debugging problem. Use Loop Escape Protocol: detect loop risk, pivot to an isomorphic frame, map back to code, and include explicit verification steps.\n\nReturn synthesis with sections:\n- Pivot rationale\n- Fix steps\n- Verification steps\n- Fallback pivot\n\nProblem:\n{}",
         req.input
     );
 
-    run_with_input(&state, debug_prompt, "solve_debug").await
+    let Json(resp) = run_with_input(&state, debug_prompt, "solve_debug").await?;
+    Ok(Json(enforce_debug_contract(resp)))
 }
 
 async fn run_with_input(
@@ -92,4 +93,29 @@ async fn run_with_input(
             }),
         )
     })
+}
+
+fn enforce_debug_contract(mut resp: ProblemResponse) -> ProblemResponse {
+    let synthesis_lower = resp.synthesis.to_lowercase();
+
+    if !synthesis_lower.contains("pivot") {
+        resp.synthesis = format!("Pivot rationale:\n- Shift to an isomorphic frame that avoids repeating the failed hypothesis.\n\n{}", resp.synthesis);
+    }
+
+    if !synthesis_lower.contains("verification")
+        && !synthesis_lower.contains("assert")
+        && !synthesis_lower.contains("test")
+    {
+        resp.synthesis.push_str(
+            "\n\nVerification steps:\n- Add/Run a focused test that reproduces the original failure.\n- Confirm one explicit pass condition and one explicit fail condition.",
+        );
+    }
+
+    if !synthesis_lower.contains("fallback") {
+        resp.synthesis.push_str(
+            "\n\nFallback pivot:\n- If verification fails, pivot to the next closest isomorphic frame and avoid retrying the same failed fix pattern.",
+        );
+    }
+
+    resp
 }
