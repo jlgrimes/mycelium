@@ -1,8 +1,11 @@
+mod debug_contract;
+
 use axum::{
     extract::State,
     routing::{get, post},
     Json, Router,
 };
+use debug_contract::DebugContractValidator;
 use mycelium_core::ReasoningProvider;
 use mycelium_engine::Engine;
 use mycelium_providers::StubProvider;
@@ -45,6 +48,7 @@ async fn main() -> anyhow::Result<()> {
         .route("/solve", post(solve))
         .route("/solve/debug", post(solve_debug))
         .route("/solve/debug/concise", post(solve_debug_concise))
+        .route("/debug/validate", post(validate_debug_contract))
         .with_state(state);
 
     let addr: SocketAddr = std::env::var("MYCELIUM_BIND")
@@ -58,6 +62,12 @@ async fn main() -> anyhow::Result<()> {
 
 async fn health() -> &'static str {
     "ok"
+}
+
+async fn validate_debug_contract(
+    Json(resp): Json<ProblemResponse>,
+) -> Json<debug_contract::ContractValidation> {
+    Json(DebugContractValidator::validate(&resp))
 }
 
 async fn solve(
@@ -92,7 +102,15 @@ async fn run_debug_route(
     );
 
     let Json(resp) = run_with_input(state, debug_prompt, "solve_debug").await?;
-    Ok(Json(enforce_debug_contract(resp, concise)))
+    let enforced = DebugContractValidator::enforce(resp, concise);
+    
+    // Validate the enforced response
+    let validation = DebugContractValidator::validate(&enforced);
+    if !validation.valid {
+        tracing::warn!("Debug contract validation failed: {:?}", validation.issues);
+    }
+    
+    Ok(Json(enforced))
 }
 
 async fn run_with_input(
@@ -111,85 +129,7 @@ async fn run_with_input(
     })
 }
 
-fn enforce_debug_contract(mut resp: ProblemResponse, concise: bool) -> ProblemResponse {
-    let confidence = derive_mapping_confidence(&resp);
-
-    let synthesize = if concise {
-        format!(
-            "SYNTHESIZE:\n- Pivot: shift to a non-repeating isomorphic frame.\n- Fix: {}\n- Verification: run a focused reproducer test with explicit pass/fail checks.\n- Fallback: pivot to the next frame if checks fail.",
-            first_line(&resp.synthesis)
-        )
-    } else {
-        format_detailed_synthesize(&resp.synthesis)
-    };
-
-    resp.abstract_shape = format!(
-        "ABSTRACT:\n- {}",
-        non_empty_or(&resp.abstract_shape, "Debug loop with uncertain root cause")
-    );
-
-    resp.cross_domain_matches = resp
-        .cross_domain_matches
-        .iter()
-        .take(if concise { 3 } else { 5 })
-        .map(|m| format!("SEARCH: {m}"))
-        .collect();
-
-    if resp.cross_domain_matches.len() < 3 {
-        resp.cross_domain_matches
-            .push("SEARCH: Compiler pass ordering as a loop-breaking analog".to_string());
-        resp.cross_domain_matches
-            .push("SEARCH: Incident response triage as a hypothesis isolation analog".to_string());
-        resp.cross_domain_matches
-            .push("SEARCH: Medical differential diagnosis as a verification analog".to_string());
-        resp.cross_domain_matches.truncate(3);
-    }
-
-    resp.mapping = format!(
-        "MAP:\n- {}\n- Mapping confidence: {confidence}",
-        non_empty_or(
-            &resp.mapping,
-            "Map repeating failure symptom -> instrumentation point -> isolating test"
-        )
-    );
-
-    resp.synthesis = synthesize;
-    resp
-}
-
-fn format_detailed_synthesize(raw: &str) -> String {
-    format!(
-        "SYNTHESIZE:\nPivot rationale:\n- Shift to an isomorphic frame that avoids repeating the failed hypothesis.\n\nFix steps:\n- {}\n\nVerification steps:\n- Add/Run a focused test that reproduces the original failure.\n- Confirm one explicit pass condition and one explicit fail condition.\n\nFallback pivot:\n- If verification fails, pivot to the next closest isomorphic frame and avoid retrying the same failed fix pattern.",
-        first_line(raw)
-    )
-}
-
-fn non_empty_or<'a>(value: &'a str, fallback: &'a str) -> &'a str {
-    let trimmed = value.trim();
-    if trimmed.is_empty() {
-        fallback
-    } else {
-        trimmed
-    }
-}
-
-fn first_line(value: &str) -> &str {
-    value
-        .lines()
-        .find(|line| !line.trim().is_empty())
-        .unwrap_or("Create one isolated hypothesis and verify it before broad changes")
-}
-
-fn derive_mapping_confidence(resp: &ProblemResponse) -> &'static str {
-    let has_3_matches = resp.cross_domain_matches.len() >= 3;
-    let has_mapping = !resp.mapping.trim().is_empty();
-
-    match (has_3_matches, has_mapping) {
-        (true, true) => "high",
-        (true, false) | (false, true) => "medium",
-        (false, false) => "low",
-    }
-}
+// Debug contract functions moved to debug_contract module
 
 #[cfg(test)]
 mod tests {
@@ -206,7 +146,7 @@ mod tests {
 
     #[test]
     fn debug_contract_has_required_stage_headers() {
-        let out = enforce_debug_contract(base_response(), false);
+        let out = DebugContractValidator::enforce(base_response(), false);
         assert!(out.abstract_shape.starts_with("ABSTRACT:"));
         assert!(out
             .cross_domain_matches
@@ -221,15 +161,15 @@ mod tests {
     fn concise_mode_trims_to_three_search_items() {
         let mut resp = base_response();
         resp.cross_domain_matches.push("d".to_string());
-        let out = enforce_debug_contract(resp, true);
+        let out = DebugContractValidator::enforce(resp, true);
         assert_eq!(out.cross_domain_matches.len(), 3);
     }
 
     #[test]
-    fn confidence_low_when_missing_signals() {
-        let mut resp = base_response();
-        resp.cross_domain_matches.clear();
-        resp.mapping.clear();
-        assert_eq!(derive_mapping_confidence(&resp), "low");
+    fn validator_middleware_validates_responses() {
+        let resp = base_response();
+        let validation = DebugContractValidator::validate(&resp);
+        assert!(!validation.valid);
+        assert!(!validation.issues.is_empty());
     }
 }
