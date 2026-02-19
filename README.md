@@ -8,7 +8,7 @@ Nature-themed, endpoint-agnostic isomorphic problem-solving engine.
 - `crates/mycelium-core` — provider trait
 - `crates/mycelium-engine` — orchestration
 - `crates/mycelium-providers` — local stub provider
-- `crates/mycelium-server` — HTTP API server (`/health`, `/solve`)
+- `crates/mycelium-server` — HTTP API server (`/health`, `/solve`, `/solve/debug`)
 - `crates/mycelium-eval` — evaluation harness & benchmarks
 - `adapters/openclaw` — real OpenClaw-backed provider
 - `skills/mycelium` — OpenClaw skill wrapper docs
