@@ -106,6 +106,7 @@ CI runs the same checks on pushes/PRs via `.github/workflows/ci.yml`.
 - Loop Escape Protocol: `docs/loop-escape-protocol.md`
 - Sprint plan: `docs/sprint-debugging-v1.md`
 - Big game plan: `docs/game-plan.md`
+- GTM plan (first 100 users): `docs/gtm-debugging-v1.md`
 - MCP direction: `docs/mcp-plan.md`
 
 ## Notes
