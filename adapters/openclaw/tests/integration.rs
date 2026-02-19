@@ -232,7 +232,11 @@ async fn invalid_json_content_returns_extraction_error() {
     let provider = OpenClawProvider::new(config_for(&server)).unwrap();
     let err = provider.solve("test").await.unwrap_err();
     let msg = format!("{err}");
-    assert!(msg.contains("JSON extraction"), "got: {msg}");
+    assert!(
+        msg.contains("failed to parse OpenClaw response")
+            || msg.contains("no valid ProblemResponse JSON"),
+        "got: {msg}"
+    );
 }
 
 #[tokio::test]

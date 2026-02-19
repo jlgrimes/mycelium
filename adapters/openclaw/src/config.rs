@@ -14,50 +14,77 @@ pub struct OpenClawConfig {
     pub retry_max_delay: Duration,
 }
 
-impl OpenClawConfig {
-    /// Build config from environment variables with sensible defaults.
-    pub fn from_env() -> Self {
-        let parse_duration_ms = |var: &str, default_ms: u64| -> Duration {
-            std::env::var(var)
-                .ok()
-                .and_then(|v| v.parse::<u64>().ok())
-                .map(Duration::from_millis)
-                .unwrap_or(Duration::from_millis(default_ms))
-        };
-
+impl Default for OpenClawConfig {
+    fn default() -> Self {
         Self {
-            base_url: std::env::var("OPENCLAW_BASE_URL")
-                .unwrap_or_else(|_| "http://127.0.0.1:18789/v1/chat/completions".into()),
-            token: std::env::var("OPENCLAW_TOKEN").ok(),
-            model: std::env::var("MYCELIUM_MODEL").unwrap_or_else(|_| "sonnet".into()),
-            temperature: std::env::var("MYCELIUM_TEMPERATURE")
-                .ok()
-                .and_then(|v| v.parse().ok())
-                .unwrap_or(0.2),
-            request_timeout: parse_duration_ms("OPENCLAW_TIMEOUT_MS", 60_000),
-            connect_timeout: parse_duration_ms("OPENCLAW_CONNECT_TIMEOUT_MS", 10_000),
-            max_retries: std::env::var("OPENCLAW_MAX_RETRIES")
-                .ok()
-                .and_then(|v| v.parse().ok())
-                .unwrap_or(3),
-            retry_base_delay: parse_duration_ms("OPENCLAW_RETRY_BASE_MS", 500),
-            retry_max_delay: parse_duration_ms("OPENCLAW_RETRY_MAX_MS", 15_000),
+            base_url: "http://127.0.0.1:18789/v1/chat/completions".to_string(),
+            token: None,
+            model: "sonnet".to_string(),
+            temperature: 0.2,
+            request_timeout: Duration::from_millis(30_000),
+            connect_timeout: Duration::from_millis(5_000),
+            max_retries: 2,
+            retry_base_delay: Duration::from_millis(250),
+            retry_max_delay: Duration::from_secs(5),
         }
     }
 }
 
-impl Default for OpenClawConfig {
-    fn default() -> Self {
-        Self {
-            base_url: "http://127.0.0.1:18789/v1/chat/completions".into(),
-            token: None,
-            model: "sonnet".into(),
-            temperature: 0.2,
-            request_timeout: Duration::from_secs(60),
-            connect_timeout: Duration::from_secs(10),
-            max_retries: 3,
-            retry_base_delay: Duration::from_millis(500),
-            retry_max_delay: Duration::from_secs(15),
+impl OpenClawConfig {
+    pub fn from_env() -> Self {
+        let mut cfg = Self::default();
+
+        if let Ok(base_url) = std::env::var("OPENCLAW_BASE_URL") {
+            cfg.base_url = base_url;
         }
+
+        if let Ok(token) = std::env::var("OPENCLAW_TOKEN") {
+            let token = token.trim().to_string();
+            if !token.is_empty() {
+                cfg.token = Some(token);
+            }
+        }
+
+        if let Ok(model) = std::env::var("MYCELIUM_MODEL") {
+            cfg.model = model;
+        }
+
+        if let Ok(v) = std::env::var("OPENCLAW_TEMPERATURE") {
+            if let Ok(parsed) = v.parse::<f32>() {
+                cfg.temperature = parsed;
+            }
+        }
+
+        if let Ok(v) = std::env::var("OPENCLAW_TIMEOUT_MS") {
+            if let Ok(parsed) = v.parse::<u64>() {
+                cfg.request_timeout = Duration::from_millis(parsed);
+            }
+        }
+
+        if let Ok(v) = std::env::var("OPENCLAW_CONNECT_TIMEOUT_MS") {
+            if let Ok(parsed) = v.parse::<u64>() {
+                cfg.connect_timeout = Duration::from_millis(parsed);
+            }
+        }
+
+        if let Ok(v) = std::env::var("OPENCLAW_MAX_RETRIES") {
+            if let Ok(parsed) = v.parse::<u32>() {
+                cfg.max_retries = parsed;
+            }
+        }
+
+        if let Ok(v) = std::env::var("OPENCLAW_RETRY_BASE_MS") {
+            if let Ok(parsed) = v.parse::<u64>() {
+                cfg.retry_base_delay = Duration::from_millis(parsed);
+            }
+        }
+
+        if let Ok(v) = std::env::var("OPENCLAW_RETRY_MAX_MS") {
+            if let Ok(parsed) = v.parse::<u64>() {
+                cfg.retry_max_delay = Duration::from_millis(parsed);
+            }
+        }
+
+        cfg
     }
 }

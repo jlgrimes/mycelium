@@ -6,87 +6,9 @@ use reqwest::{header::RETRY_AFTER, Client, Response, StatusCode};
 use serde::{Deserialize, Serialize};
 use std::time::Duration;
 
-pub mod config {
-    use std::time::Duration;
-
-    #[derive(Clone, Debug)]
-    pub struct OpenClawConfig {
-        pub base_url: String,
-        pub token: Option<String>,
-        pub model: String,
-        pub temperature: f32,
-        pub request_timeout: Duration,
-        pub connect_timeout: Duration,
-        pub max_retries: u32,
-        pub retry_base_delay: Duration,
-        pub retry_max_delay: Duration,
-    }
-
-    impl Default for OpenClawConfig {
-        fn default() -> Self {
-            Self {
-                base_url: "http://127.0.0.1:18789/v1/chat/completions".to_string(),
-                token: None,
-                model: "sonnet".to_string(),
-                temperature: 0.2,
-                request_timeout: Duration::from_millis(30_000),
-                connect_timeout: Duration::from_millis(5_000),
-                max_retries: 2,
-                retry_base_delay: Duration::from_millis(250),
-                retry_max_delay: Duration::from_secs(5),
-            }
-        }
-    }
-
-    impl OpenClawConfig {
-        pub fn from_env() -> Self {
-            let mut cfg = Self::default();
-            if let Ok(base_url) = std::env::var("OPENCLAW_BASE_URL") {
-                cfg.base_url = base_url;
-            }
-            if let Ok(token) = std::env::var("OPENCLAW_TOKEN") {
-                let token = token.trim().to_string();
-                if !token.is_empty() {
-                    cfg.token = Some(token);
-                }
-            }
-            if let Ok(model) = std::env::var("MYCELIUM_MODEL") {
-                cfg.model = model;
-            }
-            if let Ok(v) = std::env::var("OPENCLAW_TEMPERATURE") {
-                if let Ok(parsed) = v.parse::<f32>() {
-                    cfg.temperature = parsed;
-                }
-            }
-            if let Ok(v) = std::env::var("OPENCLAW_TIMEOUT_MS") {
-                if let Ok(parsed) = v.parse::<u64>() {
-                    cfg.request_timeout = Duration::from_millis(parsed);
-                }
-            }
-            if let Ok(v) = std::env::var("OPENCLAW_CONNECT_TIMEOUT_MS") {
-                if let Ok(parsed) = v.parse::<u64>() {
-                    cfg.connect_timeout = Duration::from_millis(parsed);
-                }
-            }
-            if let Ok(v) = std::env::var("OPENCLAW_MAX_RETRIES") {
-                if let Ok(parsed) = v.parse::<u32>() {
-                    cfg.max_retries = parsed;
-                }
-            }
-            if let Ok(v) = std::env::var("OPENCLAW_RETRY_BASE_MS") {
-                if let Ok(parsed) = v.parse::<u64>() {
-                    cfg.retry_base_delay = Duration::from_millis(parsed);
-                }
-            }
-            if let Ok(v) = std::env::var("OPENCLAW_RETRY_MAX_MS") {
-                if let Ok(parsed) = v.parse::<u64>() {
-                    cfg.retry_max_delay = Duration::from_millis(parsed);
-                }
-            }
-            cfg
-        }
-    }
-}
+pub mod config;
+mod error;
+mod json;
 
 const SYSTEM_PROMPT: &str = r#"You are Mycelium, a cross-domain reasoning engine.
 Return ONLY JSON with this exact schema:
@@ -348,40 +270,19 @@ impl ReasoningProvider for OpenClawProvider {
             .map(|c| c.message.content.clone())
             .ok_or_else(|| anyhow!("empty response: no choices in chat response"))?;
 
-        parse_problem_response(&content)
+        let parsed = json::extract_problem_response(&content)
+            .map_err(|err| anyhow!("failed to parse OpenClaw response: {}", err.summary()))?;
+
+        let parsed = parsed.normalized();
+        parsed.validate_quality().map_err(|issues| {
+            anyhow!(
+                "response quality check failed (score {}): {issues}",
+                parsed.quality_score()
+            )
+        })?;
+
+        Ok(parsed)
     }
-}
-
-fn parse_problem_response(raw: &str) -> Result<ProblemResponse> {
-    let parsed = if let Ok(parsed) = serde_json::from_str::<ProblemResponse>(raw) {
-        parsed
-    } else {
-        let start = raw
-            .find('{')
-            .ok_or_else(|| anyhow!("JSON extraction failed: no JSON object in response"))?;
-        let end = raw
-            .rfind('}')
-            .ok_or_else(|| anyhow!("JSON extraction failed: no JSON object in response"))?;
-        if end <= start {
-            return Err(anyhow!(
-                "JSON extraction failed: malformed JSON object bounds"
-            ));
-        }
-        let slice = &raw[start..=end];
-        serde_json::from_str(slice).with_context(|| {
-            format!("JSON extraction failed: could not parse extracted object: {slice}")
-        })?
-    };
-
-    let parsed = parsed.normalized();
-    parsed.validate_quality().map_err(|issues| {
-        anyhow!(
-            "response quality check failed (score {}): {issues}",
-            parsed.quality_score()
-        )
-    })?;
-
-    Ok(parsed)
 }
 
 #[cfg(test)]
@@ -401,7 +302,7 @@ mod tests {
 ```
 "#;
 
-        let parsed = parse_problem_response(raw).expect("should parse");
+        let parsed = json::extract_problem_response(raw).expect("should parse");
         assert_eq!(parsed.abstract_shape, "loop");
         assert_eq!(parsed.cross_domain_matches.len(), 3);
     }
@@ -415,11 +316,14 @@ mod tests {
   "synthesis": "syn"
 }"#;
 
-        let err = parse_problem_response(raw).expect_err("should fail quality gate");
+        let parsed = json::extract_problem_response(raw).expect("json extraction should work");
+        let parsed = parsed.normalized();
+        let err = parsed
+            .validate_quality()
+            .expect_err("should fail quality gate");
         assert!(
-            err.to_string()
-                .contains("cross_domain_matches must contain at least 3 items"),
-            "unexpected error: {err:#}"
+            err.contains("cross_domain_matches must contain at least 3 items"),
+            "unexpected error: {err}"
         );
     }
 
