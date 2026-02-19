@@ -53,6 +53,16 @@ Uses `StubProvider` by default. Swap providers in `main.rs` to evaluate against 
 
 Run tests: `cargo test -p mycelium-eval`
 
+## Development checks
+
+```bash
+cargo fmt --all -- --check
+cargo clippy --workspace --all-targets -- -D warnings
+cargo test --workspace
+```
+
+CI runs the same checks on pushes/PRs via `.github/workflows/ci.yml`.
+
 ## Notes
 
 - Credentials stay in OpenClaw/runtime env, not frontend apps.

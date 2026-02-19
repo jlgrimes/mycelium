@@ -13,6 +13,76 @@ pub struct ProblemResponse {
     pub synthesis: String,
 }
 
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct AbstractOutput {
+    pub domain: String,
+    pub abstract_shape: String,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct CrossDomainMatch {
+    pub domain: String,
+    pub description: String,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct SearchOutput {
+    pub matches: Vec<CrossDomainMatch>,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct EntityMapping {
+    pub source: String,
+    pub target: String,
+    pub relation: String,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct MapOutput {
+    pub mappings: Vec<EntityMapping>,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct SynthesizeOutput {
+    pub synthesis: String,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct StageTrace {
+    pub input: String,
+    pub abstract_out: AbstractOutput,
+    pub search_out: SearchOutput,
+    pub map_out: MapOutput,
+    pub synthesize_out: SynthesizeOutput,
+}
+
+impl StageTrace {
+    pub fn into_response(self) -> ProblemResponse {
+        let cross_domain_matches = self
+            .search_out
+            .matches
+            .iter()
+            .map(|m| format!("{}: {}", m.domain, m.description))
+            .collect();
+
+        let mapping = self
+            .map_out
+            .mappings
+            .iter()
+            .map(|m| format!("{} -> {} ({})", m.source, m.target, m.relation))
+            .collect::<Vec<_>>()
+            .join("; ");
+
+        ProblemResponse {
+            abstract_shape: self.abstract_out.abstract_shape,
+            cross_domain_matches,
+            mapping,
+            synthesis: self.synthesize_out.synthesis,
+        }
+        .normalized()
+    }
+}
+
 impl ProblemResponse {
     pub fn normalized(mut self) -> Self {
         self.abstract_shape = self.abstract_shape.trim().to_string();
@@ -77,7 +147,7 @@ impl ProblemResponse {
 
 #[cfg(test)]
 mod tests {
-    use super::ProblemResponse;
+    use super::*;
 
     #[test]
     fn normalize_trims_and_dedupes_matches() {
@@ -111,5 +181,48 @@ mod tests {
 
         assert!(response.validate_quality().is_err());
         assert_eq!(response.quality_score(), 75);
+    }
+
+    #[test]
+    fn stage_trace_to_response_formats_fields() {
+        let trace = StageTrace {
+            input: "input".into(),
+            abstract_out: AbstractOutput {
+                domain: "music".into(),
+                abstract_shape: "loop".into(),
+            },
+            search_out: SearchOutput {
+                matches: vec![
+                    CrossDomainMatch {
+                        domain: "A".into(),
+                        description: "alpha".into(),
+                    },
+                    CrossDomainMatch {
+                        domain: "B".into(),
+                        description: "beta".into(),
+                    },
+                    CrossDomainMatch {
+                        domain: "C".into(),
+                        description: "gamma".into(),
+                    },
+                ],
+            },
+            map_out: MapOutput {
+                mappings: vec![EntityMapping {
+                    source: "s".into(),
+                    target: "t".into(),
+                    relation: "r".into(),
+                }],
+            },
+            synthesize_out: SynthesizeOutput {
+                synthesis: "do this".into(),
+            },
+        };
+
+        let response = trace.into_response();
+        assert_eq!(response.abstract_shape, "loop");
+        assert_eq!(response.cross_domain_matches.len(), 3);
+        assert_eq!(response.mapping, "s -> t (r)");
+        assert_eq!(response.synthesis, "do this");
     }
 }

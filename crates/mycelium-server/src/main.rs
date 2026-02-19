@@ -22,16 +22,19 @@ struct ErrorResponse {
     error: String,
 }
 
+fn build_provider() -> Arc<dyn ReasoningProvider> {
+    if std::env::var("MYCELIUM_USE_STUB").ok().as_deref() == Some("1") {
+        Arc::new(StubProvider)
+    } else {
+        Arc::new(OpenClawProvider::from_env())
+    }
+}
+
 #[tokio::main]
 async fn main() -> anyhow::Result<()> {
     tracing_subscriber::fmt().with_env_filter("info").init();
 
-    let provider: Arc<dyn ReasoningProvider> =
-        if std::env::var("MYCELIUM_USE_STUB").ok().as_deref() == Some("1") {
-            Arc::new(StubProvider)
-        } else {
-            Arc::new(OpenClawProvider::from_env())
-        };
+    let provider = build_provider();
 
     let state = AppState {
         engine: Arc::new(Engine::new(provider)),

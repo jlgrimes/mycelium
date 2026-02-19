@@ -23,15 +23,10 @@ impl std::fmt::Display for RunMode {
 }
 
 /// Configuration for an eval run.
+#[derive(Default)]
 pub struct EvalConfig {
     /// Which cases to run (None = all seed cases).
     pub filter: Option<Vec<String>>,
-}
-
-impl Default for EvalConfig {
-    fn default() -> Self {
-        Self { filter: None }
-    }
 }
 
 /// Runs benchmark cases against a provider and collects scored results.
