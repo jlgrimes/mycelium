@@ -63,11 +63,13 @@ impl StagedProvider for StubProvider {
                     source: "failure mode".into(),
                     target: "correction loop".into(),
                     relation: "triggers".into(),
+                    confidence: Some(0.86),
                 },
                 EntityMapping {
                     source: "practice chunk".into(),
                     target: "micro-isolation".into(),
                     relation: "implements".into(),
+                    confidence: Some(0.72),
                 },
             ],
         })

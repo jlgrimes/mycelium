@@ -125,6 +125,7 @@ mod tests {
                     source: "src".into(),
                     target: "tgt".into(),
                     relation: "maps_to".into(),
+                    confidence: Some(0.91),
                 }],
             })
         }
@@ -259,11 +260,13 @@ mod tests {
                         source: "s1".into(),
                         target: "t1".into(),
                         relation: "r1".into(),
+                        confidence: Some(0.8),
                     },
                     EntityMapping {
                         source: "s2".into(),
                         target: "t2".into(),
                         relation: "r2".into(),
+                        confidence: Some(0.4),
                     },
                 ],
             },
@@ -274,7 +277,10 @@ mod tests {
         let resp = trace.into_response();
         assert_eq!(resp.abstract_shape, "shape");
         assert_eq!(resp.cross_domain_matches, vec!["A: desc_a", "B: desc_b"]);
-        assert_eq!(resp.mapping, "s1 -> t1 (r1); s2 -> t2 (r2)");
+        assert_eq!(
+            resp.mapping,
+            "s1 -> t1 (r1, confidence: high); s2 -> t2 (r2, confidence: low)"
+        );
         assert_eq!(resp.synthesis, "syn");
     }
 }

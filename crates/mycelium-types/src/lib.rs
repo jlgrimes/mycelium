@@ -35,6 +35,8 @@ pub struct EntityMapping {
     pub source: String,
     pub target: String,
     pub relation: String,
+    #[serde(default)]
+    pub confidence: Option<f32>,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -69,7 +71,7 @@ impl StageTrace {
             .map_out
             .mappings
             .iter()
-            .map(|m| format!("{} -> {} ({})", m.source, m.target, m.relation))
+            .map(format_mapping_entry)
             .collect::<Vec<_>>()
             .join("; ");
 
@@ -80,6 +82,29 @@ impl StageTrace {
             synthesis: self.synthesize_out.synthesis,
         }
         .normalized()
+    }
+}
+
+fn format_mapping_entry(m: &EntityMapping) -> String {
+    match m.confidence {
+        Some(conf) => format!(
+            "{} -> {} ({}, confidence: {})",
+            m.source,
+            m.target,
+            m.relation,
+            confidence_label(conf)
+        ),
+        None => format!("{} -> {} ({})", m.source, m.target, m.relation),
+    }
+}
+
+fn confidence_label(score: f32) -> &'static str {
+    if score >= 0.8 {
+        "high"
+    } else if score >= 0.5 {
+        "medium"
+    } else {
+        "low"
     }
 }
 
@@ -212,6 +237,7 @@ mod tests {
                     source: "s".into(),
                     target: "t".into(),
                     relation: "r".into(),
+                    confidence: Some(0.82),
                 }],
             },
             synthesize_out: SynthesizeOutput {
@@ -222,7 +248,7 @@ mod tests {
         let response = trace.into_response();
         assert_eq!(response.abstract_shape, "loop");
         assert_eq!(response.cross_domain_matches.len(), 3);
-        assert_eq!(response.mapping, "s -> t (r)");
+        assert_eq!(response.mapping, "s -> t (r, confidence: high)");
         assert_eq!(response.synthesis, "do this");
     }
 }
