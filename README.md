@@ -76,6 +76,7 @@ CI runs the same checks on pushes/PRs via `.github/workflows/ci.yml`.
 - Spec: `docs/wedge-debugging.md`
 - Loop Escape Protocol: `docs/loop-escape-protocol.md`
 - Sprint plan: `docs/sprint-debugging-v1.md`
+- Big game plan: `docs/game-plan.md`
 - MCP direction: `docs/mcp-plan.md`
 
 ## Notes
