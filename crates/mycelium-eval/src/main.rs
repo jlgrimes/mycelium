@@ -11,8 +11,16 @@ fn print_report(label: &str, report: &ScoreReport) {
         report.cases_total,
     );
     for result in &report.results {
-        let status = if result.overall >= 0.3 { "PASS" } else { "FAIL" };
-        print!("  [{status}] {:<25} {:.0}%", result.case_id, result.overall * 100.0);
+        let status = if result.overall >= 0.3 {
+            "PASS"
+        } else {
+            "FAIL"
+        };
+        print!(
+            "  [{status}] {:<25} {:.0}%",
+            result.case_id,
+            result.overall * 100.0
+        );
         if let Some(err) = &result.error {
             print!("  ERROR: {err}");
         }

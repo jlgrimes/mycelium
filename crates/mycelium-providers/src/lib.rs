@@ -36,23 +36,50 @@ impl StagedProvider for StubProvider {
     async fn search(&self, _abstraction: &AbstractOutput) -> Result<SearchOutput> {
         Ok(SearchOutput {
             matches: vec![
-                CrossDomainMatch { domain: "music".into(), description: "Practice chunking".into() },
-                CrossDomainMatch { domain: "compilers".into(), description: "Optimization passes".into() },
-                CrossDomainMatch { domain: "athletics".into(), description: "Interval training".into() },
+                CrossDomainMatch {
+                    domain: "music".into(),
+                    description: "Practice chunking".into(),
+                },
+                CrossDomainMatch {
+                    domain: "compilers".into(),
+                    description: "Optimization passes".into(),
+                },
+                CrossDomainMatch {
+                    domain: "athletics".into(),
+                    description: "Interval training".into(),
+                },
             ],
         })
     }
 
-    async fn map(&self, _abstraction: &AbstractOutput, _search: &SearchOutput) -> Result<MapOutput> {
+    async fn map(
+        &self,
+        _abstraction: &AbstractOutput,
+        _search: &SearchOutput,
+    ) -> Result<MapOutput> {
         Ok(MapOutput {
             mappings: vec![
-                EntityMapping { source: "failure mode".into(), target: "correction loop".into(), relation: "triggers".into() },
-                EntityMapping { source: "practice chunk".into(), target: "micro-isolation".into(), relation: "implements".into() },
+                EntityMapping {
+                    source: "failure mode".into(),
+                    target: "correction loop".into(),
+                    relation: "triggers".into(),
+                },
+                EntityMapping {
+                    source: "practice chunk".into(),
+                    target: "micro-isolation".into(),
+                    relation: "implements".into(),
+                },
             ],
         })
     }
 
-    async fn synthesize(&self, _input: &str, _abstraction: &AbstractOutput, _search: &SearchOutput, _map: &MapOutput) -> Result<SynthesizeOutput> {
+    async fn synthesize(
+        &self,
+        _input: &str,
+        _abstraction: &AbstractOutput,
+        _search: &SearchOutput,
+        _map: &MapOutput,
+    ) -> Result<SynthesizeOutput> {
         Ok(SynthesizeOutput {
             synthesis: "Use micro-isolation, progressive integration, spaced review, and randomized transfer reps.".into(),
         })

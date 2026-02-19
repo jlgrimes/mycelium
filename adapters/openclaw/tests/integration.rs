@@ -1,6 +1,6 @@
+use mycelium_core::ReasoningProvider;
 use openclaw_adapter::config::OpenClawConfig;
 use openclaw_adapter::OpenClawProvider;
-use mycelium_core::ReasoningProvider;
 use std::time::Duration;
 use wiremock::matchers::{method, path};
 use wiremock::{Mock, MockServer, ResponseTemplate};
@@ -119,7 +119,10 @@ async fn retries_exhausted_returns_error() {
     let provider = OpenClawProvider::new(config_for(&server)).unwrap();
     let err = provider.solve("test").await.unwrap_err();
     let msg = format!("{err}");
-    assert!(msg.contains("500") || msg.contains("retries exhausted"), "got: {msg}");
+    assert!(
+        msg.contains("500") || msg.contains("retries exhausted"),
+        "got: {msg}"
+    );
 }
 
 #[tokio::test]
@@ -179,7 +182,10 @@ async fn empty_choices_returns_error() {
     let provider = OpenClawProvider::new(config_for(&server)).unwrap();
     let err = provider.solve("test").await.unwrap_err();
     let msg = format!("{err}");
-    assert!(msg.contains("empty response") || msg.contains("no choices"), "got: {msg}");
+    assert!(
+        msg.contains("empty response") || msg.contains("no choices"),
+        "got: {msg}"
+    );
 }
 
 #[tokio::test]
@@ -207,7 +213,10 @@ async fn sends_bearer_token_header() {
 
     Mock::given(method("POST"))
         .and(path("/v1/chat/completions"))
-        .and(wiremock::matchers::header("Authorization", "Bearer test-token"))
+        .and(wiremock::matchers::header(
+            "Authorization",
+            "Bearer test-token",
+        ))
         .respond_with(ResponseTemplate::new(200).set_body_json(&body))
         .expect(1)
         .mount(&server)

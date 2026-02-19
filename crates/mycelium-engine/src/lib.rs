@@ -14,11 +14,15 @@ pub struct Engine {
 
 impl Engine {
     pub fn new(provider: Arc<dyn ReasoningProvider>) -> Self {
-        Self { kind: ProviderKind::SinglePass(provider) }
+        Self {
+            kind: ProviderKind::SinglePass(provider),
+        }
     }
 
     pub fn staged(provider: Arc<dyn StagedProvider>) -> Self {
-        Self { kind: ProviderKind::Staged(provider) }
+        Self {
+            kind: ProviderKind::Staged(provider),
+        }
     }
 
     pub async fn run(&self, input: &str) -> Result<ProblemResponse> {
@@ -40,11 +44,17 @@ impl Engine {
         }
     }
 
-    async fn run_staged(&self, provider: &Arc<dyn StagedProvider>, input: &str) -> Result<StageTrace> {
+    async fn run_staged(
+        &self,
+        provider: &Arc<dyn StagedProvider>,
+        input: &str,
+    ) -> Result<StageTrace> {
         let abstract_out = provider.abstract_problem(input).await?;
         let search_out = provider.search(&abstract_out).await?;
         let map_out = provider.map(&abstract_out, &search_out).await?;
-        let synthesize_out = provider.synthesize(input, &abstract_out, &search_out, &map_out).await?;
+        let synthesize_out = provider
+            .synthesize(input, &abstract_out, &search_out, &map_out)
+            .await?;
 
         Ok(StageTrace {
             input: input.to_string(),
@@ -69,7 +79,9 @@ mod tests {
 
     impl MockStagedProvider {
         fn new() -> Self {
-            Self { call_order: AtomicU8::new(0) }
+            Self {
+                call_order: AtomicU8::new(0),
+            }
         }
     }
 
@@ -88,9 +100,18 @@ mod tests {
             assert!(abs.abstract_shape.starts_with("abstracted:"));
             Ok(SearchOutput {
                 matches: vec![
-                    CrossDomainMatch { domain: "d1".into(), description: "match1".into() },
-                    CrossDomainMatch { domain: "d2".into(), description: "match2".into() },
-                    CrossDomainMatch { domain: "d3".into(), description: "match3".into() },
+                    CrossDomainMatch {
+                        domain: "d1".into(),
+                        description: "match1".into(),
+                    },
+                    CrossDomainMatch {
+                        domain: "d2".into(),
+                        description: "match2".into(),
+                    },
+                    CrossDomainMatch {
+                        domain: "d3".into(),
+                        description: "match3".into(),
+                    },
                 ],
             })
         }
@@ -108,11 +129,19 @@ mod tests {
             })
         }
 
-        async fn synthesize(&self, input: &str, _abs: &AbstractOutput, _search: &SearchOutput, map: &MapOutput) -> Result<SynthesizeOutput> {
+        async fn synthesize(
+            &self,
+            input: &str,
+            _abs: &AbstractOutput,
+            _search: &SearchOutput,
+            map: &MapOutput,
+        ) -> Result<SynthesizeOutput> {
             assert_eq!(self.call_order.fetch_add(1, Ordering::SeqCst), 3);
             assert!(!input.is_empty());
             assert_eq!(map.mappings.len(), 1);
-            Ok(SynthesizeOutput { synthesis: "final synthesis".into() })
+            Ok(SynthesizeOutput {
+                synthesis: "final synthesis".into(),
+            })
         }
     }
 
@@ -186,7 +215,13 @@ mod tests {
         async fn map(&self, _: &AbstractOutput, _: &SearchOutput) -> Result<MapOutput> {
             unreachable!()
         }
-        async fn synthesize(&self, _: &str, _: &AbstractOutput, _: &SearchOutput, _: &MapOutput) -> Result<SynthesizeOutput> {
+        async fn synthesize(
+            &self,
+            _: &str,
+            _: &AbstractOutput,
+            _: &SearchOutput,
+            _: &MapOutput,
+        ) -> Result<SynthesizeOutput> {
             unreachable!()
         }
     }
@@ -202,20 +237,39 @@ mod tests {
     async fn stage_trace_into_response_formatting() {
         let trace = StageTrace {
             input: "test".into(),
-            abstract_out: AbstractOutput { domain: "d".into(), abstract_shape: "shape".into() },
+            abstract_out: AbstractOutput {
+                domain: "d".into(),
+                abstract_shape: "shape".into(),
+            },
             search_out: SearchOutput {
                 matches: vec![
-                    CrossDomainMatch { domain: "A".into(), description: "desc_a".into() },
-                    CrossDomainMatch { domain: "B".into(), description: "desc_b".into() },
+                    CrossDomainMatch {
+                        domain: "A".into(),
+                        description: "desc_a".into(),
+                    },
+                    CrossDomainMatch {
+                        domain: "B".into(),
+                        description: "desc_b".into(),
+                    },
                 ],
             },
             map_out: MapOutput {
                 mappings: vec![
-                    EntityMapping { source: "s1".into(), target: "t1".into(), relation: "r1".into() },
-                    EntityMapping { source: "s2".into(), target: "t2".into(), relation: "r2".into() },
+                    EntityMapping {
+                        source: "s1".into(),
+                        target: "t1".into(),
+                        relation: "r1".into(),
+                    },
+                    EntityMapping {
+                        source: "s2".into(),
+                        target: "t2".into(),
+                        relation: "r2".into(),
+                    },
                 ],
             },
-            synthesize_out: SynthesizeOutput { synthesis: "syn".into() },
+            synthesize_out: SynthesizeOutput {
+                synthesis: "syn".into(),
+            },
         };
         let resp = trace.into_response();
         assert_eq!(resp.abstract_shape, "shape");

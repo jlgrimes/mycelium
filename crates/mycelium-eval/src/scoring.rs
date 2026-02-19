@@ -40,10 +40,8 @@ impl Scorer {
             &response.abstract_shape,
             case.expect_abstract,
         );
-        let matches_score = Self::matches_score(
-            &response.cross_domain_matches,
-            case.expect_min_matches,
-        );
+        let matches_score =
+            Self::matches_score(&response.cross_domain_matches, case.expect_min_matches);
         let keyword_score = Self::combined_keyword_score(
             &response.mapping,
             &response.synthesis,
@@ -76,13 +74,21 @@ impl Scorer {
     pub fn report(results: Vec<EvalResult>) -> ScoreReport {
         let cases_total = results.len();
         let pass_threshold = 0.3;
-        let cases_passed = results.iter().filter(|r| r.overall >= pass_threshold).count();
+        let cases_passed = results
+            .iter()
+            .filter(|r| r.overall >= pass_threshold)
+            .count();
         let mean_score = if cases_total > 0 {
             results.iter().map(|r| r.overall).sum::<f64>() / cases_total as f64
         } else {
             0.0
         };
-        ScoreReport { results, mean_score, cases_passed, cases_total }
+        ScoreReport {
+            results,
+            mean_score,
+            cases_passed,
+            cases_total,
+        }
     }
 
     fn keyword_score(field: &str, text: &str, keywords: &[&str]) -> FieldScore {
@@ -101,7 +107,12 @@ impl Scorer {
         } else {
             matched.len() as f64 / keywords.len() as f64
         };
-        FieldScore { field: field.to_string(), score, matched, missed }
+        FieldScore {
+            field: field.to_string(),
+            score,
+            matched,
+            missed,
+        }
     }
 
     fn matches_score(matches: &[String], min_expected: usize) -> FieldScore {
@@ -139,7 +150,12 @@ impl Scorer {
         } else {
             matched.len() as f64 / keywords.len() as f64
         };
-        FieldScore { field: "mapping+synthesis".to_string(), score, matched, missed }
+        FieldScore {
+            field: "mapping+synthesis".to_string(),
+            score,
+            matched,
+            missed,
+        }
     }
 }
 
@@ -167,12 +183,20 @@ mod tests {
         let case = &SEED_CASES[0]; // trumpet-practice
         let resp = make_response(
             "Repetition-based skill acquisition with feedback loops",
-            vec!["Music practice chunking", "Athletic interval training", "Compiler passes"],
+            vec![
+                "Music practice chunking",
+                "Athletic interval training",
+                "Compiler passes",
+            ],
             "Map practice sessions to technique drills",
             "Use spaced repetition technique for consistent improvement",
         );
         let result = Scorer::score(case, &resp);
-        assert!(result.overall > 0.8, "expected high score, got {}", result.overall);
+        assert!(
+            result.overall > 0.8,
+            "expected high score, got {}",
+            result.overall
+        );
     }
 
     #[test]
@@ -180,7 +204,11 @@ mod tests {
         let case = &SEED_CASES[0];
         let resp = make_response("", vec![], "", "");
         let result = Scorer::score(case, &resp);
-        assert!(result.overall < 0.1, "expected near-zero, got {}", result.overall);
+        assert!(
+            result.overall < 0.1,
+            "expected near-zero, got {}",
+            result.overall
+        );
     }
 
     #[test]

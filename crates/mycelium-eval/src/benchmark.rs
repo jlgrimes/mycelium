@@ -197,9 +197,21 @@ mod tests {
     #[test]
     fn all_cases_have_expectations() {
         for case in SEED_CASES {
-            assert!(!case.expect_abstract.is_empty(), "{}: empty expect_abstract", case.id);
-            assert!(case.expect_min_matches >= 1, "{}: expect_min_matches < 1", case.id);
-            assert!(!case.expect_keywords.is_empty(), "{}: empty expect_keywords", case.id);
+            assert!(
+                !case.expect_abstract.is_empty(),
+                "{}: empty expect_abstract",
+                case.id
+            );
+            assert!(
+                case.expect_min_matches >= 1,
+                "{}: expect_min_matches < 1",
+                case.id
+            );
+            assert!(
+                !case.expect_keywords.is_empty(),
+                "{}: empty expect_keywords",
+                case.id
+            );
         }
     }
 }
