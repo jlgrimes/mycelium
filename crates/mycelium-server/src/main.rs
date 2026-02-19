@@ -71,7 +71,7 @@ async fn solve_debug(
     Json(req): Json<ProblemRequest>,
 ) -> Result<Json<ProblemResponse>, (axum::http::StatusCode, Json<ErrorResponse>)> {
     let debug_prompt = format!(
-        "You are solving a software debugging problem. Use Loop Escape Protocol: detect loop risk, pivot to an isomorphic frame, map back to code, and include explicit verification steps.\n\nReturn synthesis with sections:\n- Pivot rationale\n- Fix steps\n- Verification steps\n- Fallback pivot\n\nProblem:\n{}",
+        "You are solving a software debugging problem. Use Loop Escape Protocol: detect loop risk, pivot to an isomorphic frame, map back to code, and include explicit verification steps.\n\nReturn synthesis with sections:\n- Pivot rationale\n- Mapping confidence\n- Fix steps\n- Verification steps\n- Fallback pivot\n\nProblem:\n{}",
         req.input
     );
 
@@ -102,6 +102,12 @@ fn enforce_debug_contract(mut resp: ProblemResponse) -> ProblemResponse {
         resp.synthesis = format!("Pivot rationale:\n- Shift to an isomorphic frame that avoids repeating the failed hypothesis.\n\n{}", resp.synthesis);
     }
 
+    if !synthesis_lower.contains("mapping confidence") {
+        let confidence = derive_mapping_confidence(&resp);
+        resp.synthesis
+            .push_str(&format!("\n\nMapping confidence:\n- {confidence}"));
+    }
+
     if !synthesis_lower.contains("verification")
         && !synthesis_lower.contains("assert")
         && !synthesis_lower.contains("test")
@@ -118,4 +124,61 @@ fn enforce_debug_contract(mut resp: ProblemResponse) -> ProblemResponse {
     }
 
     resp
+}
+
+fn derive_mapping_confidence(resp: &ProblemResponse) -> &'static str {
+    let has_3_matches = resp.cross_domain_matches.len() >= 3;
+    let has_mapping = !resp.mapping.trim().is_empty();
+
+    match (has_3_matches, has_mapping) {
+        (true, true) => "high — mapping has explicit structure and enough analog evidence.",
+        (true, false) | (false, true) => {
+            "medium — partly grounded, but one supporting signal is weak."
+        }
+        (false, false) => {
+            "low — sparse analog evidence and mapping detail; verify before applying."
+        }
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    fn base_response() -> ProblemResponse {
+        ProblemResponse {
+            abstract_shape: "shape".to_string(),
+            cross_domain_matches: vec!["a".to_string(), "b".to_string(), "c".to_string()],
+            mapping: "x -> y".to_string(),
+            synthesis: "Fix steps:\n- Do the thing".to_string(),
+        }
+    }
+
+    #[test]
+    fn adds_mapping_confidence_section_when_missing() {
+        let out = enforce_debug_contract(base_response());
+        assert!(out.synthesis.to_lowercase().contains("mapping confidence"));
+    }
+
+    #[test]
+    fn does_not_duplicate_mapping_confidence() {
+        let mut resp = base_response();
+        resp.synthesis.push_str("\n\nMapping confidence:\n- high");
+        let out = enforce_debug_contract(resp);
+        assert_eq!(
+            out.synthesis
+                .to_lowercase()
+                .matches("mapping confidence")
+                .count(),
+            1
+        );
+    }
+
+    #[test]
+    fn confidence_low_when_missing_signals() {
+        let mut resp = base_response();
+        resp.cross_domain_matches.clear();
+        resp.mapping.clear();
+        assert!(derive_mapping_confidence(&resp).starts_with("low"));
+    }
 }
