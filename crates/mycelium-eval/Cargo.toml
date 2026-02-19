@@ -1,0 +1,22 @@
+[package]
+name = "mycelium-eval"
+description = "Evaluation harness and benchmarks for Mycelium reasoning pipelines"
+edition.workspace = true
+license.workspace = true
+version.workspace = true
+authors.workspace = true
+
+[dependencies]
+mycelium-types = { path = "../mycelium-types" }
+mycelium-core = { path = "../mycelium-core" }
+mycelium-engine = { path = "../mycelium-engine" }
+mycelium-providers = { path = "../mycelium-providers" }
+anyhow.workspace = true
+serde.workspace = true
+serde_json.workspace = true
+tokio.workspace = true
+tracing.workspace = true
+
+[[bin]]
+name = "mycelium-eval"
+path = "src/main.rs"

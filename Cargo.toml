@@ -5,6 +5,7 @@ members = [
   "crates/mycelium-core",
   "crates/mycelium-engine",
   "crates/mycelium-providers",
+  "crates/mycelium-eval",
   "crates/mycelium-server",
   "adapters/openclaw",
 ]

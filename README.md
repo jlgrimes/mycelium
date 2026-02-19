@@ -9,6 +9,7 @@ Nature-themed, endpoint-agnostic isomorphic problem-solving engine.
 - `crates/mycelium-engine` — orchestration
 - `crates/mycelium-providers` — local stub provider
 - `crates/mycelium-server` — HTTP API server (`/health`, `/solve`)
+- `crates/mycelium-eval` — evaluation harness & benchmarks
 - `adapters/openclaw` — real OpenClaw-backed provider
 - `skills/mycelium` — OpenClaw skill wrapper docs
 
@@ -36,6 +37,20 @@ curl -X POST http://127.0.0.1:8787/solve \
   -H 'content-type: application/json' \
   -d '{"input":"How do I practice trumpet better?"}'
 ```
+
+## Eval harness
+
+Run the benchmark suite (20 seed cases, scored against keyword expectations):
+
+```bash
+cargo run -p mycelium-eval              # full suite, baseline vs staged
+cargo run -p mycelium-eval -- --list    # list available cases
+cargo run -p mycelium-eval -- --filter trumpet-practice,reduce-tech-debt
+```
+
+Uses `StubProvider` by default. Swap providers in `main.rs` to evaluate against real endpoints.
+
+Run tests: `cargo test -p mycelium-eval`
 
 ## Notes
 
