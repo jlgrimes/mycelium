@@ -1,9 +1,14 @@
-use axum::{extract::State, routing::{get, post}, Json, Router};
+use axum::{
+    extract::State,
+    routing::{get, post},
+    Json, Router,
+};
 use mycelium_core::ReasoningProvider;
 use mycelium_engine::Engine;
 use mycelium_providers::StubProvider;
 use mycelium_types::{ProblemRequest, ProblemResponse};
 use openclaw_adapter::OpenClawProvider;
+use serde::Serialize;
 use std::{net::SocketAddr, sync::Arc};
 use tracing::info;
 
@@ -12,15 +17,21 @@ struct AppState {
     engine: Arc<Engine>,
 }
 
+#[derive(Serialize)]
+struct ErrorResponse {
+    error: String,
+}
+
 #[tokio::main]
 async fn main() -> anyhow::Result<()> {
     tracing_subscriber::fmt().with_env_filter("info").init();
 
-    let provider: Arc<dyn ReasoningProvider> = if std::env::var("MYCELIUM_USE_STUB").ok().as_deref() == Some("1") {
-        Arc::new(StubProvider)
-    } else {
-        Arc::new(OpenClawProvider::from_env())
-    };
+    let provider: Arc<dyn ReasoningProvider> =
+        if std::env::var("MYCELIUM_USE_STUB").ok().as_deref() == Some("1") {
+            Arc::new(StubProvider)
+        } else {
+            Arc::new(OpenClawProvider::from_env())
+        };
 
     let state = AppState {
         engine: Arc::new(Engine::new(provider)),
@@ -47,14 +58,14 @@ async fn health() -> &'static str {
 async fn solve(
     State(state): State<AppState>,
     Json(req): Json<ProblemRequest>,
-) -> Result<Json<ProblemResponse>, axum::http::StatusCode> {
-    state
-        .engine
-        .run(&req.input)
-        .await
-        .map(Json)
-        .map_err(|err| {
-            tracing::error!("solve failed: {err:#}");
-            axum::http::StatusCode::INTERNAL_SERVER_ERROR
-        })
+) -> Result<Json<ProblemResponse>, (axum::http::StatusCode, Json<ErrorResponse>)> {
+    state.engine.run(&req.input).await.map(Json).map_err(|err| {
+        tracing::error!("solve failed: {err:#}");
+        (
+            axum::http::StatusCode::INTERNAL_SERVER_ERROR,
+            Json(ErrorResponse {
+                error: format!("solve failed: {err}"),
+            }),
+        )
+    })
 }

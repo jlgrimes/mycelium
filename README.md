@@ -26,6 +26,7 @@ Environment variables:
 - `OPENCLAW_MAX_RETRIES` (default: `2`; total attempts = retries + 1)
 - `OPENCLAW_RETRY_BASE_MS` (default: `250`; exponential backoff base)
 - `MYCELIUM_MODEL` (default: `sonnet`)
+- Responses are normalized + quality-gated (non-empty fields and at least 3 cross-domain matches)
 - `MYCELIUM_BIND` (default: `127.0.0.1:8787`)
 - `MYCELIUM_USE_STUB=1` to force local stub provider
 
