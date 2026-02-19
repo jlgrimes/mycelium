@@ -39,6 +39,11 @@ cargo run -p mycelium-server
 curl -X POST http://127.0.0.1:8787/solve \
   -H 'content-type: application/json' \
   -d '{"input":"How do I practice trumpet better?"}'
+
+# Debugging-focused mode (Loop Escape Protocol prompting)
+curl -X POST http://127.0.0.1:8787/solve/debug \
+  -H 'content-type: application/json' \
+  -d '{"input":"My reducer state is wrong after chained updates"}'
 ```
 
 ## Eval harness
@@ -69,7 +74,9 @@ CI runs the same checks on pushes/PRs via `.github/workflows/ci.yml`.
 
 - Wedge #1: Debugging loops for software engineers
 - Spec: `docs/wedge-debugging.md`
+- Loop Escape Protocol: `docs/loop-escape-protocol.md`
 - Sprint plan: `docs/sprint-debugging-v1.md`
+- MCP direction: `docs/mcp-plan.md`
 
 ## Notes
 

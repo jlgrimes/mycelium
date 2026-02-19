@@ -43,6 +43,7 @@ async fn main() -> anyhow::Result<()> {
     let app = Router::new()
         .route("/health", get(health))
         .route("/solve", post(solve))
+        .route("/solve/debug", post(solve_debug))
         .with_state(state);
 
     let addr: SocketAddr = std::env::var("MYCELIUM_BIND")
@@ -62,12 +63,32 @@ async fn solve(
     State(state): State<AppState>,
     Json(req): Json<ProblemRequest>,
 ) -> Result<Json<ProblemResponse>, (axum::http::StatusCode, Json<ErrorResponse>)> {
-    state.engine.run(&req.input).await.map(Json).map_err(|err| {
-        tracing::error!("solve failed: {err:#}");
+    run_with_input(&state, req.input, "solve").await
+}
+
+async fn solve_debug(
+    State(state): State<AppState>,
+    Json(req): Json<ProblemRequest>,
+) -> Result<Json<ProblemResponse>, (axum::http::StatusCode, Json<ErrorResponse>)> {
+    let debug_prompt = format!(
+        "You are solving a software debugging problem. Use Loop Escape Protocol: detect loop risk, pivot to an isomorphic frame, map back to code, and include explicit verification steps.\n\nProblem:\n{}",
+        req.input
+    );
+
+    run_with_input(&state, debug_prompt, "solve_debug").await
+}
+
+async fn run_with_input(
+    state: &AppState,
+    input: String,
+    route: &str,
+) -> Result<Json<ProblemResponse>, (axum::http::StatusCode, Json<ErrorResponse>)> {
+    state.engine.run(&input).await.map(Json).map_err(|err| {
+        tracing::error!("{route} failed: {err:#}");
         (
             axum::http::StatusCode::INTERNAL_SERVER_ERROR,
             Json(ErrorResponse {
-                error: format!("solve failed: {err}"),
+                error: format!("{route} failed: {err}"),
             }),
         )
     })
