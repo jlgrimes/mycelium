@@ -1,3 +1,4 @@
+use crate::actionability_heuristics::CalibratedActionabilityScorer;
 use crate::benchmark::BenchmarkCase;
 use mycelium_types::ProblemResponse;
 use serde::{Deserialize, Serialize};
@@ -53,7 +54,7 @@ impl Scorer {
 
         let overall = (abstract_score.score + matches_score.score + keyword_score.score) / 3.0;
         let verification_presence = has_verification_signal(&response.synthesis);
-        let actionability_score = actionability_score(response);
+        let actionability_score = CalibratedActionabilityScorer::legacy_score(response);
 
         EvalResult {
             case_id: case.id.to_string(),
@@ -200,37 +201,7 @@ fn has_verification_signal(synthesis: &str) -> bool {
     .any(|kw| lower.contains(kw))
 }
 
-fn actionability_score(response: &ProblemResponse) -> u8 {
-    let synth = response.synthesis.to_lowercase();
-    let map = response.mapping.to_lowercase();
-
-    let mut score = 0_u8;
-    if !response.abstract_shape.trim().is_empty() {
-        score += 1;
-    }
-    if response.cross_domain_matches.len() >= 3 {
-        score += 1;
-    }
-    if ["step", "first", "then", "run", "check", "measure"]
-        .iter()
-        .any(|kw| synth.contains(kw))
-    {
-        score += 1;
-    }
-    if ["verify", "test", "assert", "pass", "fail"]
-        .iter()
-        .any(|kw| synth.contains(kw))
-    {
-        score += 1;
-    }
-    if ["map", "confidence", "source", "target", "->"]
-        .iter()
-        .any(|kw| map.contains(kw) || synth.contains(kw))
-    {
-        score += 1;
-    }
-    score.min(5)
-}
+// Legacy actionability scoring function removed - use CalibratedActionabilityScorer::legacy_score instead
 
 #[cfg(test)]
 mod tests {
