@@ -168,6 +168,35 @@ async fn rate_limit_429_is_retried() {
 }
 
 #[tokio::test]
+async fn rate_limit_retry_after_header_is_honored() {
+    let server = MockServer::start().await;
+    let body = chat_response_body(&valid_problem_json());
+
+    Mock::given(method("POST"))
+        .and(path("/v1/chat/completions"))
+        .respond_with(
+            ResponseTemplate::new(429)
+                .insert_header("Retry-After", "0")
+                .set_body_string("slow down"),
+        )
+        .up_to_n_times(1)
+        .expect(1)
+        .mount(&server)
+        .await;
+
+    Mock::given(method("POST"))
+        .and(path("/v1/chat/completions"))
+        .respond_with(ResponseTemplate::new(200).set_body_json(&body))
+        .expect(1)
+        .mount(&server)
+        .await;
+
+    let provider = OpenClawProvider::new(config_for(&server)).unwrap();
+    let resp = provider.solve("test").await.unwrap();
+    assert_eq!(resp.cross_domain_matches.len(), 3);
+}
+
+#[tokio::test]
 async fn empty_choices_returns_error() {
     let server = MockServer::start().await;
     let body = serde_json::json!({ "choices": [] });

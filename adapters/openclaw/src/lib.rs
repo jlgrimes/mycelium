@@ -2,7 +2,7 @@ use anyhow::{anyhow, bail, Context, Result};
 use async_trait::async_trait;
 use mycelium_core::ReasoningProvider;
 use mycelium_types::ProblemResponse;
-use reqwest::{Client, StatusCode};
+use reqwest::{header::RETRY_AFTER, Client, Response, StatusCode};
 use serde::{Deserialize, Serialize};
 use std::time::Duration;
 
@@ -154,6 +154,7 @@ impl OpenClawProvider {
             match req.send().await {
                 Ok(resp) => {
                     let status = resp.status();
+                    let retry_after = parse_retry_after(&resp);
                     let text = resp.text().await.unwrap_or_default();
 
                     if status.is_success() {
@@ -161,17 +162,12 @@ impl OpenClawProvider {
                             .with_context(|| format!("invalid chat response body: {text}"));
                     }
 
-                    let err = anyhow!(
-                        "openclaw HTTP {} on attempt {}/{}: {}",
-                        status,
-                        attempt + 1,
-                        total_attempts,
-                        text
-                    );
+                    let err = http_error_message(status, attempt + 1, total_attempts, &text, retry_after);
 
                     if is_retryable_status(status) && attempt < self.cfg.max_retries {
                         last_error = Some(err);
-                        tokio::time::sleep(self.retry_delay(attempt)).await;
+                        let delay = retry_after.unwrap_or_else(|| self.retry_delay(attempt));
+                        tokio::time::sleep(delay).await;
                         continue;
                     }
 
@@ -260,6 +256,44 @@ fn is_retryable_status(status: StatusCode) -> bool {
             | StatusCode::GATEWAY_TIMEOUT
             | StatusCode::INTERNAL_SERVER_ERROR
     )
+}
+
+fn parse_retry_after(resp: &Response) -> Option<Duration> {
+    let value = resp.headers().get(RETRY_AFTER)?.to_str().ok()?.trim();
+    let seconds = value.parse::<u64>().ok()?;
+    Some(Duration::from_secs(seconds))
+}
+
+fn http_error_message(
+    status: StatusCode,
+    attempt: u32,
+    total_attempts: u32,
+    body: &str,
+    retry_after: Option<Duration>,
+) -> anyhow::Error {
+    let mut details = format!(
+        "openclaw HTTP {} on attempt {}/{}: {}",
+        status, attempt, total_attempts, body
+    );
+
+    if matches!(status, StatusCode::UNAUTHORIZED | StatusCode::FORBIDDEN) {
+        details.push_str(
+            " | auth failed: verify OPENCLAW_TOKEN or OPENCLAW_AUTH_HEADER and endpoint permissions",
+        );
+    }
+
+    if status == StatusCode::TOO_MANY_REQUESTS {
+        if let Some(delay) = retry_after {
+            details.push_str(&format!(
+                " | rate limited: honoring Retry-After={}s",
+                delay.as_secs()
+            ));
+        } else {
+            details.push_str(" | rate limited: no Retry-After header provided");
+        }
+    }
+
+    anyhow!(details)
 }
 
 fn is_retryable_transport_error(err: &reqwest::Error) -> bool {
@@ -394,6 +428,14 @@ mod tests {
         assert!(is_retryable_status(StatusCode::TOO_MANY_REQUESTS));
         assert!(is_retryable_status(StatusCode::INTERNAL_SERVER_ERROR));
         assert!(!is_retryable_status(StatusCode::UNAUTHORIZED));
+    }
+
+    #[test]
+    fn auth_error_has_helpful_hint() {
+        let err = http_error_message(StatusCode::UNAUTHORIZED, 1, 3, "bad token", None);
+        let msg = err.to_string();
+        assert!(msg.contains("auth failed"));
+        assert!(msg.contains("OPENCLAW_TOKEN"));
     }
 
     #[test]
