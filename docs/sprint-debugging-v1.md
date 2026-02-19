@@ -1,30 +1,43 @@
 # Sprint Plan — Debugging Wedge V1
 
 ## Milestone
+
 Ship a reliable Debugging Wedge demo that beats baseline single-pass quality on targeted cases.
 
 ## Track A — Product surface
-- [ ] Add `mycelium-debug` mode/entrypoint in server API (`/solve/debug`)
-- [ ] Enforce response contract with required verification step
-- [ ] Add concise output mode for quick action (short fix plan)
+
+- [x] Add debugging API entrypoint (`/solve/debug`)
+- [x] Enforce response contract with required verification step
+- [x] Add concise output mode for quick action (`/solve/debug/concise`)
 
 ## Track B — Engine quality
-- [ ] Add debugging-specific stage prompts (abstract/search/map/synthesize)
-- [ ] Add mapping confidence score (0-1) for each proposed fix path
-- [ ] Add lightweight fallback when JSON parsing fails
+
+- [x] Add mapping confidence signal for proposed fix paths (staged + debug contract)
+- [ ] Add debugging-specific stage prompts for explicit staged provider flow
+- [x] Keep robust JSON parsing + extraction fallback in OpenClaw adapter
 
 ## Track C — Eval and quality gates
-- [ ] Create `benchmarks/debugging-v1.json` with 10 representative bugs
-- [ ] Add eval metric: `actionability_score` (0-5)
-- [ ] Add eval metric: `verification_presence` (boolean)
-- [ ] Compare baseline vs staged; target +10% actionability
+
+- [x] Create debugging-v1 benchmark suite (10 representative bugs)
+- [x] Add eval metric: `actionability_score` (`0..5`)
+- [x] Add eval metric: `verification_presence` (boolean)
+- [x] Compare baseline vs staged and commit report artifact
+- [ ] Drive measurable delta target (+10% actionability) with non-stub providers
 
 ## Track D — SaaS readiness
-- [ ] Add ICP + JTBD into README/docs
+
+- [ ] Add ICP + JTBD go-to-market summary into dedicated GTM doc
 - [ ] Add one-page pitch/demo script for this wedge
 - [ ] Define first 100 users channels (dev-focused)
 
-## Definition of done
-- All tests pass
-- Benchmark report committed
-- One reproducible demo command documented
+## Definition of done (current)
+
+- [x] All tests pass in CI/local
+- [x] Benchmark report committed (`reports/debugging-v1-baseline-vs-staged.txt`)
+- [x] Reproducible debug demo commands documented in README
+
+## Next slice
+
+1. Wire staged debug prompts in provider/runtime path (not only route contract shaping).
+2. Run eval suite with non-stub provider and capture benchmark delta.
+3. Ship GTM plan doc (`docs/gtm-debugging-v1.md`) and link from README.
