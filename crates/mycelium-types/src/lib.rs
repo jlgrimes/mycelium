@@ -1,3 +1,5 @@
+pub mod mapping_precision;
+
 use serde::{Deserialize, Serialize};
 
 #[derive(Debug, Clone, Serialize, Deserialize)]

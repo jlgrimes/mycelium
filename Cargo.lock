@@ -707,6 +707,7 @@ dependencies = [
  "async-trait",
  "mycelium-core",
  "mycelium-types",
+ "tokio",
 ]
 
 [[package]]

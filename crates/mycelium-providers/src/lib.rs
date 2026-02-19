@@ -1,3 +1,5 @@
+pub mod precision_provider;
+
 use anyhow::Result;
 use async_trait::async_trait;
 use mycelium_core::{ReasoningProvider, StagedProvider};
@@ -5,6 +7,8 @@ use mycelium_types::{
     AbstractOutput, CrossDomainMatch, EntityMapping, MapOutput, ProblemResponse, SearchOutput,
     SynthesizeOutput,
 };
+
+pub use precision_provider::PrecisionEnhancedProvider;
 
 pub struct StubProvider;
 

@@ -9,3 +9,6 @@ async-trait.workspace = true
 anyhow.workspace = true
 mycelium-core = { path = "../mycelium-core" }
 mycelium-types = { path = "../mycelium-types" }
+
+[dev-dependencies]
+tokio = { version = "1", features = ["rt-multi-thread", "macros", "test-util"] }
