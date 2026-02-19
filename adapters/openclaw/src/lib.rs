@@ -108,6 +108,13 @@ No markdown. No extra keys."#;
 pub struct OpenClawProvider {
     client: Client,
     cfg: config::OpenClawConfig,
+    auth_header: Option<AuthHeader>,
+}
+
+#[derive(Clone)]
+struct AuthHeader {
+    name: String,
+    value: String,
 }
 
 impl OpenClawProvider {
@@ -122,7 +129,11 @@ impl OpenClawProvider {
             .build()
             .context("failed to construct reqwest client")?;
 
-        Ok(Self { client, cfg })
+        Ok(Self {
+            client,
+            auth_header: resolve_auth_header(&cfg),
+            cfg,
+        })
     }
 
     pub fn from_env() -> Self {
@@ -136,8 +147,8 @@ impl OpenClawProvider {
 
         for attempt in 0..total_attempts {
             let mut req = self.client.post(&self.cfg.base_url).json(body);
-            if let Some(token) = &self.cfg.token {
-                req = req.bearer_auth(token);
+            if let Some(auth) = &self.auth_header {
+                req = req.header(&auth.name, &auth.value);
             }
 
             match req.send().await {
@@ -196,6 +207,47 @@ impl OpenClawProvider {
             .min(self.cfg.retry_max_delay.as_millis()) as u64;
         Duration::from_millis(millis)
     }
+}
+
+fn resolve_auth_header(cfg: &config::OpenClawConfig) -> Option<AuthHeader> {
+    if let Ok(raw) = std::env::var("OPENCLAW_AUTH_HEADER") {
+        if let Some(parsed) = parse_auth_header(&raw) {
+            return Some(parsed);
+        }
+    }
+
+    cfg.token
+        .as_ref()
+        .map(|token| token.trim())
+        .filter(|token| !token.is_empty())
+        .map(|token| AuthHeader {
+            name: "Authorization".to_string(),
+            value: format!("Bearer {token}"),
+        })
+}
+
+fn parse_auth_header(raw: &str) -> Option<AuthHeader> {
+    let raw = raw.trim();
+    if raw.is_empty() {
+        return None;
+    }
+
+    if let Some((name, value)) = raw.split_once(':') {
+        let name = name.trim();
+        let value = value.trim();
+        if name.is_empty() || value.is_empty() {
+            return None;
+        }
+        return Some(AuthHeader {
+            name: name.to_string(),
+            value: value.to_string(),
+        });
+    }
+
+    Some(AuthHeader {
+        name: "Authorization".to_string(),
+        value: raw.to_string(),
+    })
 }
 
 fn is_retryable_status(status: StatusCode) -> bool {
@@ -342,5 +394,19 @@ mod tests {
         assert!(is_retryable_status(StatusCode::TOO_MANY_REQUESTS));
         assert!(is_retryable_status(StatusCode::INTERNAL_SERVER_ERROR));
         assert!(!is_retryable_status(StatusCode::UNAUTHORIZED));
+    }
+
+    #[test]
+    fn parses_explicit_auth_header() {
+        let parsed = parse_auth_header("X-API-Key: secret").expect("should parse");
+        assert_eq!(parsed.name, "X-API-Key");
+        assert_eq!(parsed.value, "secret");
+    }
+
+    #[test]
+    fn parses_raw_auth_header_as_authorization() {
+        let parsed = parse_auth_header("Bearer abc").expect("should parse");
+        assert_eq!(parsed.name, "Authorization");
+        assert_eq!(parsed.value, "Bearer abc");
     }
 }
