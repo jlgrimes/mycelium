@@ -64,13 +64,26 @@ curl -X POST http://127.0.0.1:8787/solve/debug/concise \
 
 ## Eval harness
 
-Run the benchmark suite (20 seed cases, scored against keyword expectations):
+Run benchmark suites (baseline vs staged) and score response quality + actionability:
 
 ```bash
-cargo run -p mycelium-eval              # full suite, baseline vs staged
-cargo run -p mycelium-eval -- --list    # list available cases
-cargo run -p mycelium-eval -- --filter trumpet-practice,reduce-tech-debt
+cargo run -p mycelium-eval
+cargo run -p mycelium-eval -- --suite seed
+cargo run -p mycelium-eval -- --suite debugging-v1
+cargo run -p mycelium-eval -- --suite debugging-v1 --list
+cargo run -p mycelium-eval -- --suite debugging-v1 --filter debug-null-pointer,debug-memory-leak
 ```
+
+Available suites:
+
+- `seed` (20 general cross-domain reasoning cases)
+- `debugging-v1` (10 debugging-loop wedge cases)
+
+Report fields include:
+
+- mean score
+- mean actionability (`0..5`)
+- verification presence rate
 
 Uses `StubProvider` by default. Swap providers in `main.rs` to evaluate against real endpoints.
 

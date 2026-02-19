@@ -1,12 +1,16 @@
-use mycelium_eval::{EvalConfig, EvalRunner, RunMode, ScoreReport, SEED_CASES};
+use mycelium_eval::{
+    BenchmarkSuite, EvalConfig, EvalRunner, RunMode, ScoreReport, DEBUGGING_V1_CASES, SEED_CASES,
+};
 use mycelium_providers::StubProvider;
 use std::sync::Arc;
 
 fn print_report(label: &str, report: &ScoreReport) {
     println!("\n=== {label} ===");
     println!(
-        "Score: {:.1}% | Passed: {}/{}\n",
+        "Score: {:.1}% | Actionability: {:.2}/5 | Verification: {:.1}% | Passed: {}/{}\n",
         report.mean_score * 100.0,
+        report.mean_actionability,
+        report.verification_rate * 100.0,
         report.cases_passed,
         report.cases_total,
     );
@@ -17,63 +21,79 @@ fn print_report(label: &str, report: &ScoreReport) {
             "FAIL"
         };
         print!(
-            "  [{status}] {:<25} {:.0}%",
+            "  [{status}] {:<25} {:.0}% act={}/5 verify={}",
             result.case_id,
-            result.overall * 100.0
+            result.overall * 100.0,
+            result.actionability_score,
+            if result.verification_presence {
+                "yes"
+            } else {
+                "no"
+            }
         );
         if let Some(err) = &result.error {
             print!("  ERROR: {err}");
         }
         println!();
-        for fs in &result.field_scores {
-            if !fs.missed.is_empty() {
-                println!("         {} missed: {}", fs.field, fs.missed.join(", "));
-            }
-        }
     }
 }
 
 fn print_comparison(baseline: &ScoreReport, staged: &ScoreReport) {
     println!("\n=== Comparison: Baseline vs Staged ===");
     println!(
-        "Baseline: {:.1}% ({}/{} passed)",
+        "Baseline: {:.1}% (act {:.2}/5, verify {:.1}%)",
         baseline.mean_score * 100.0,
-        baseline.cases_passed,
-        baseline.cases_total,
+        baseline.mean_actionability,
+        baseline.verification_rate * 100.0,
     );
     println!(
-        "Staged:   {:.1}% ({}/{} passed)",
+        "Staged:   {:.1}% (act {:.2}/5, verify {:.1}%)",
         staged.mean_score * 100.0,
-        staged.cases_passed,
-        staged.cases_total,
+        staged.mean_actionability,
+        staged.verification_rate * 100.0,
     );
     let delta = (staged.mean_score - baseline.mean_score) * 100.0;
     let arrow = if delta > 0.0 { "+" } else { "" };
     println!("Delta:    {arrow}{delta:.1}pp");
 }
 
+fn parse_suite(args: &[String]) -> BenchmarkSuite {
+    if let Some(value) = args.windows(2).find(|w| w[0] == "--suite").map(|w| &w[1]) {
+        if value == "debugging-v1" {
+            return BenchmarkSuite::DebuggingV1;
+        }
+    }
+    BenchmarkSuite::Seed
+}
+
 #[tokio::main]
 async fn main() -> anyhow::Result<()> {
     let args: Vec<String> = std::env::args().skip(1).collect();
 
-    // Parse optional --filter flag
     let filter = args
         .windows(2)
         .find(|w| w[0] == "--filter")
         .map(|w| w[1].split(',').map(String::from).collect::<Vec<_>>());
 
+    let suite = parse_suite(&args);
     let list_mode = args.iter().any(|a| a == "--list");
     if list_mode {
-        println!("Available benchmark cases ({}):", SEED_CASES.len());
-        for case in SEED_CASES {
+        let cases = match suite {
+            BenchmarkSuite::Seed => SEED_CASES,
+            BenchmarkSuite::DebuggingV1 => DEBUGGING_V1_CASES,
+        };
+        println!(
+            "Available benchmark cases for suite `{suite}` ({}):",
+            cases.len()
+        );
+        for case in cases {
             println!("  {:<25} {}", case.id, case.input);
         }
         return Ok(());
     }
 
-    let config = EvalConfig { filter };
+    let config = EvalConfig { filter, suite };
 
-    // Both modes use StubProvider for now; swap in real providers as they mature.
     let provider: Arc<dyn mycelium_core::ReasoningProvider> = Arc::new(StubProvider);
 
     let baseline_runner = EvalRunner::new(Arc::clone(&provider), RunMode::Baseline);

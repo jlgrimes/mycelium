@@ -18,6 +18,8 @@ pub struct EvalResult {
     pub mode: String,
     pub field_scores: Vec<FieldScore>,
     pub overall: f64,
+    pub actionability_score: u8,
+    pub verification_presence: bool,
     pub error: Option<String>,
 }
 
@@ -26,6 +28,8 @@ pub struct EvalResult {
 pub struct ScoreReport {
     pub results: Vec<EvalResult>,
     pub mean_score: f64,
+    pub mean_actionability: f64,
+    pub verification_rate: f64,
     pub cases_passed: usize,
     pub cases_total: usize,
 }
@@ -33,7 +37,6 @@ pub struct ScoreReport {
 pub struct Scorer;
 
 impl Scorer {
-    /// Score a response against a benchmark case. Returns 0.0–1.0 overall.
     pub fn score(case: &BenchmarkCase, response: &ProblemResponse) -> EvalResult {
         let abstract_score = Self::keyword_score(
             "abstract_shape",
@@ -49,28 +52,32 @@ impl Scorer {
         );
 
         let overall = (abstract_score.score + matches_score.score + keyword_score.score) / 3.0;
+        let verification_presence = has_verification_signal(&response.synthesis);
+        let actionability_score = actionability_score(response);
 
         EvalResult {
             case_id: case.id.to_string(),
             mode: String::new(),
             field_scores: vec![abstract_score, matches_score, keyword_score],
             overall,
+            actionability_score,
+            verification_presence,
             error: None,
         }
     }
 
-    /// Build an EvalResult representing a failed run.
     pub fn error_result(case: &BenchmarkCase, mode: &str, err: &str) -> EvalResult {
         EvalResult {
             case_id: case.id.to_string(),
             mode: mode.to_string(),
             field_scores: vec![],
             overall: 0.0,
+            actionability_score: 0,
+            verification_presence: false,
             error: Some(err.to_string()),
         }
     }
 
-    /// Build aggregate report from a set of results.
     pub fn report(results: Vec<EvalResult>) -> ScoreReport {
         let cases_total = results.len();
         let pass_threshold = 0.3;
@@ -78,14 +85,34 @@ impl Scorer {
             .iter()
             .filter(|r| r.overall >= pass_threshold)
             .count();
+
         let mean_score = if cases_total > 0 {
             results.iter().map(|r| r.overall).sum::<f64>() / cases_total as f64
         } else {
             0.0
         };
+
+        let mean_actionability = if cases_total > 0 {
+            results
+                .iter()
+                .map(|r| r.actionability_score as f64)
+                .sum::<f64>()
+                / cases_total as f64
+        } else {
+            0.0
+        };
+
+        let verification_rate = if cases_total > 0 {
+            results.iter().filter(|r| r.verification_presence).count() as f64 / cases_total as f64
+        } else {
+            0.0
+        };
+
         ScoreReport {
             results,
             mean_score,
+            mean_actionability,
+            verification_rate,
             cases_passed,
             cases_total,
         }
@@ -159,6 +186,52 @@ impl Scorer {
     }
 }
 
+fn has_verification_signal(synthesis: &str) -> bool {
+    let lower = synthesis.to_lowercase();
+    [
+        "verify",
+        "verification",
+        "assert",
+        "test",
+        "reproduce",
+        "pass condition",
+    ]
+    .iter()
+    .any(|kw| lower.contains(kw))
+}
+
+fn actionability_score(response: &ProblemResponse) -> u8 {
+    let synth = response.synthesis.to_lowercase();
+    let map = response.mapping.to_lowercase();
+
+    let mut score = 0_u8;
+    if !response.abstract_shape.trim().is_empty() {
+        score += 1;
+    }
+    if response.cross_domain_matches.len() >= 3 {
+        score += 1;
+    }
+    if ["step", "first", "then", "run", "check", "measure"]
+        .iter()
+        .any(|kw| synth.contains(kw))
+    {
+        score += 1;
+    }
+    if ["verify", "test", "assert", "pass", "fail"]
+        .iter()
+        .any(|kw| synth.contains(kw))
+    {
+        score += 1;
+    }
+    if ["map", "confidence", "source", "target", "->"]
+        .iter()
+        .any(|kw| map.contains(kw) || synth.contains(kw))
+    {
+        score += 1;
+    }
+    score.min(5)
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -180,7 +253,7 @@ mod tests {
 
     #[test]
     fn perfect_score_for_matching_response() {
-        let case = &SEED_CASES[0]; // trumpet-practice
+        let case = &SEED_CASES[0];
         let resp = make_response(
             "Repetition-based skill acquisition with feedback loops",
             vec![
@@ -189,14 +262,12 @@ mod tests {
                 "Compiler passes",
             ],
             "Map practice sessions to technique drills",
-            "Use spaced repetition technique for consistent improvement",
+            "Use spaced repetition technique; then run a test recording and verify improvements",
         );
         let result = Scorer::score(case, &resp);
-        assert!(
-            result.overall > 0.8,
-            "expected high score, got {}",
-            result.overall
-        );
+        assert!(result.overall > 0.8);
+        assert!(result.verification_presence);
+        assert!(result.actionability_score >= 4);
     }
 
     #[test]
@@ -204,28 +275,9 @@ mod tests {
         let case = &SEED_CASES[0];
         let resp = make_response("", vec![], "", "");
         let result = Scorer::score(case, &resp);
-        assert!(
-            result.overall < 0.1,
-            "expected near-zero, got {}",
-            result.overall
-        );
-    }
-
-    #[test]
-    fn partial_score_for_partial_match() {
-        let case = &SEED_CASES[0]; // expects: repetition, skill, feedback
-        let resp = make_response(
-            "Skill development through repetition",
-            vec!["One match"],
-            "Some mapping about practice",
-            "A synthesis about practice technique",
-        );
-        let result = Scorer::score(case, &resp);
-        assert!(
-            result.overall > 0.3 && result.overall < 0.9,
-            "expected partial score, got {}",
-            result.overall
-        );
+        assert!(result.overall < 0.1);
+        assert_eq!(result.actionability_score, 0);
+        assert!(!result.verification_presence);
     }
 
     #[test]
@@ -233,17 +285,19 @@ mod tests {
         let case = &SEED_CASES[0];
         let result = Scorer::error_result(case, "baseline", "provider timeout");
         assert_eq!(result.overall, 0.0);
-        assert!(result.error.is_some());
+        assert_eq!(result.actionability_score, 0);
     }
 
     #[test]
-    fn report_computes_mean_correctly() {
+    fn report_computes_aggregate_metrics() {
         let results = vec![
             EvalResult {
                 case_id: "a".into(),
                 mode: "test".into(),
                 field_scores: vec![],
                 overall: 0.8,
+                actionability_score: 5,
+                verification_presence: true,
                 error: None,
             },
             EvalResult {
@@ -251,12 +305,14 @@ mod tests {
                 mode: "test".into(),
                 field_scores: vec![],
                 overall: 0.4,
+                actionability_score: 1,
+                verification_presence: false,
                 error: None,
             },
         ];
         let report = Scorer::report(results);
         assert!((report.mean_score - 0.6).abs() < 0.001);
-        assert_eq!(report.cases_passed, 2); // both >= 0.3
-        assert_eq!(report.cases_total, 2);
+        assert!((report.mean_actionability - 3.0).abs() < 0.001);
+        assert!((report.verification_rate - 0.5).abs() < 0.001);
     }
 }

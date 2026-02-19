@@ -15,7 +15,6 @@ pub struct BenchmarkCase {
 
 /// 20 seed benchmark cases spanning diverse problem domains.
 pub const SEED_CASES: &[BenchmarkCase] = &[
-    // 1 — Skill acquisition
     BenchmarkCase {
         id: "trumpet-practice",
         input: "How do I practice trumpet more effectively?",
@@ -23,7 +22,6 @@ pub const SEED_CASES: &[BenchmarkCase] = &[
         expect_min_matches: 2,
         expect_keywords: &["practice", "technique"],
     },
-    // 2 — Software engineering
     BenchmarkCase {
         id: "reduce-tech-debt",
         input: "How can a startup reduce tech debt while shipping fast?",
@@ -31,7 +29,6 @@ pub const SEED_CASES: &[BenchmarkCase] = &[
         expect_min_matches: 2,
         expect_keywords: &["refactor", "incremental"],
     },
-    // 3 — Biology
     BenchmarkCase {
         id: "immune-response",
         input: "How does the immune system learn to fight new pathogens?",
@@ -39,7 +36,6 @@ pub const SEED_CASES: &[BenchmarkCase] = &[
         expect_min_matches: 2,
         expect_keywords: &["pattern", "response"],
     },
-    // 4 — Education
     BenchmarkCase {
         id: "teach-math",
         input: "What is the best way to teach algebra to struggling students?",
@@ -47,7 +43,6 @@ pub const SEED_CASES: &[BenchmarkCase] = &[
         expect_min_matches: 2,
         expect_keywords: &["concrete", "step"],
     },
-    // 5 — Urban planning
     BenchmarkCase {
         id: "traffic-flow",
         input: "How can a city reduce traffic congestion without building new roads?",
@@ -55,7 +50,6 @@ pub const SEED_CASES: &[BenchmarkCase] = &[
         expect_min_matches: 2,
         expect_keywords: &["route", "demand"],
     },
-    // 6 — Cooking
     BenchmarkCase {
         id: "flavor-balance",
         input: "How do chefs balance flavors in a complex dish?",
@@ -63,7 +57,6 @@ pub const SEED_CASES: &[BenchmarkCase] = &[
         expect_min_matches: 2,
         expect_keywords: &["taste", "adjust"],
     },
-    // 7 — Team management
     BenchmarkCase {
         id: "team-conflict",
         input: "How should a manager resolve conflict between two senior engineers?",
@@ -71,7 +64,6 @@ pub const SEED_CASES: &[BenchmarkCase] = &[
         expect_min_matches: 2,
         expect_keywords: &["communicate", "perspective"],
     },
-    // 8 — Ecology
     BenchmarkCase {
         id: "forest-recovery",
         input: "How does a forest ecosystem recover after a wildfire?",
@@ -79,7 +71,6 @@ pub const SEED_CASES: &[BenchmarkCase] = &[
         expect_min_matches: 2,
         expect_keywords: &["pioneer", "regenerat"],
     },
-    // 9 — Finance
     BenchmarkCase {
         id: "portfolio-risk",
         input: "How should a retail investor diversify a small portfolio?",
@@ -87,7 +78,6 @@ pub const SEED_CASES: &[BenchmarkCase] = &[
         expect_min_matches: 2,
         expect_keywords: &["asset", "correlat"],
     },
-    // 10 — Writing
     BenchmarkCase {
         id: "writers-block",
         input: "How can a novelist overcome persistent writer's block?",
@@ -95,7 +85,6 @@ pub const SEED_CASES: &[BenchmarkCase] = &[
         expect_min_matches: 2,
         expect_keywords: &["routine", "prompt"],
     },
-    // 11 — Supply chain
     BenchmarkCase {
         id: "supply-chain",
         input: "How can a manufacturer reduce supply chain disruptions?",
@@ -103,7 +92,6 @@ pub const SEED_CASES: &[BenchmarkCase] = &[
         expect_min_matches: 2,
         expect_keywords: &["supplier", "buffer"],
     },
-    // 12 — Machine learning
     BenchmarkCase {
         id: "model-overfit",
         input: "How do you prevent overfitting in a deep learning model?",
@@ -111,7 +99,6 @@ pub const SEED_CASES: &[BenchmarkCase] = &[
         expect_min_matches: 2,
         expect_keywords: &["regulariz", "data"],
     },
-    // 13 — Architecture
     BenchmarkCase {
         id: "building-energy",
         input: "How can an old building be retrofitted for energy efficiency?",
@@ -119,7 +106,6 @@ pub const SEED_CASES: &[BenchmarkCase] = &[
         expect_min_matches: 2,
         expect_keywords: &["heat", "upgrade"],
     },
-    // 14 — Healthcare
     BenchmarkCase {
         id: "patient-adherence",
         input: "How can doctors improve patient medication adherence?",
@@ -127,7 +113,6 @@ pub const SEED_CASES: &[BenchmarkCase] = &[
         expect_min_matches: 2,
         expect_keywords: &["habit", "simplif"],
     },
-    // 15 — Game design
     BenchmarkCase {
         id: "game-difficulty",
         input: "How should a game designer tune difficulty curves?",
@@ -135,7 +120,6 @@ pub const SEED_CASES: &[BenchmarkCase] = &[
         expect_min_matches: 2,
         expect_keywords: &["player", "adapt"],
     },
-    // 16 — Agriculture
     BenchmarkCase {
         id: "soil-health",
         input: "How can a farmer restore depleted soil without synthetic fertilizers?",
@@ -143,7 +127,6 @@ pub const SEED_CASES: &[BenchmarkCase] = &[
         expect_min_matches: 2,
         expect_keywords: &["compost", "crop"],
     },
-    // 17 — Negotiation
     BenchmarkCase {
         id: "salary-negotiation",
         input: "What strategies work for negotiating a higher salary?",
@@ -151,7 +134,6 @@ pub const SEED_CASES: &[BenchmarkCase] = &[
         expect_min_matches: 2,
         expect_keywords: &["offer", "market"],
     },
-    // 18 — Physics / engineering
     BenchmarkCase {
         id: "bridge-load",
         input: "How do engineers distribute load across a suspension bridge?",
@@ -159,7 +141,6 @@ pub const SEED_CASES: &[BenchmarkCase] = &[
         expect_min_matches: 2,
         expect_keywords: &["cable", "force"],
     },
-    // 19 — Psychology
     BenchmarkCase {
         id: "habit-formation",
         input: "What is the most reliable way to build a new daily habit?",
@@ -167,7 +148,6 @@ pub const SEED_CASES: &[BenchmarkCase] = &[
         expect_min_matches: 2,
         expect_keywords: &["trigger", "consist"],
     },
-    // 20 — Open-source community
     BenchmarkCase {
         id: "oss-contributors",
         input: "How can an open-source project attract and retain contributors?",
@@ -177,29 +157,89 @@ pub const SEED_CASES: &[BenchmarkCase] = &[
     },
 ];
 
+/// 10 debugging-focused cases for wedge v1 evaluation.
+pub const DEBUGGING_V1_CASES: &[BenchmarkCase] = &[
+    BenchmarkCase {
+        id: "debug-null-pointer",
+        input: "Service crashes with a null pointer only under high load.",
+        expect_abstract: &["race", "state", "timing"],
+        expect_min_matches: 3,
+        expect_keywords: &["reproduce", "instrument", "verify"],
+    },
+    BenchmarkCase {
+        id: "debug-memory-leak",
+        input: "Memory usage climbs steadily after deploying worker autoscaling.",
+        expect_abstract: &["resource", "accumulation", "lifecycle"],
+        expect_min_matches: 3,
+        expect_keywords: &["heap", "profile", "rollback"],
+    },
+    BenchmarkCase {
+        id: "debug-flaky-test",
+        input: "CI test fails randomly but passes locally.",
+        expect_abstract: &["nondetermin", "environment", "timing"],
+        expect_min_matches: 3,
+        expect_keywords: &["isolate", "seed", "assert"],
+    },
+    BenchmarkCase {
+        id: "debug-cache-stale",
+        input: "Users see stale data despite successful writes.",
+        expect_abstract: &["consistency", "cache", "invalidation"],
+        expect_min_matches: 3,
+        expect_keywords: &["ttl", "invalidate", "verify"],
+    },
+    BenchmarkCase {
+        id: "debug-auth-regression",
+        input: "Auth tokens started failing after rotating signing keys.",
+        expect_abstract: &["compatibility", "trust", "version"],
+        expect_min_matches: 3,
+        expect_keywords: &["key", "clock", "fallback"],
+    },
+    BenchmarkCase {
+        id: "debug-db-deadlock",
+        input: "Two services intermittently deadlock on shared records.",
+        expect_abstract: &["contention", "ordering", "lock"],
+        expect_min_matches: 3,
+        expect_keywords: &["transaction", "order", "retry"],
+    },
+    BenchmarkCase {
+        id: "debug-queue-backlog",
+        input: "Background job queue keeps growing even after scaling workers.",
+        expect_abstract: &["throughput", "bottleneck", "backpressure"],
+        expect_min_matches: 3,
+        expect_keywords: &["rate", "batch", "monitor"],
+    },
+    BenchmarkCase {
+        id: "debug-schema-drift",
+        input: "Downstream consumers break after a minor event schema change.",
+        expect_abstract: &["contract", "evolution", "compatibility"],
+        expect_min_matches: 3,
+        expect_keywords: &["version", "transform", "validate"],
+    },
+    BenchmarkCase {
+        id: "debug-feature-flag",
+        input: "Feature flag rollout causes inconsistent behavior by region.",
+        expect_abstract: &["segmentation", "state", "control"],
+        expect_min_matches: 3,
+        expect_keywords: &["cohort", "toggle", "observability"],
+    },
+    BenchmarkCase {
+        id: "debug-latency-spike",
+        input: "API latency spikes every hour with no obvious traffic surge.",
+        expect_abstract: &["periodic", "resource", "saturation"],
+        expect_min_matches: 3,
+        expect_keywords: &["cron", "profile", "mitigate"],
+    },
+];
+
 #[cfg(test)]
 mod tests {
     use super::*;
 
-    #[test]
-    fn seed_cases_has_20_entries() {
-        assert_eq!(SEED_CASES.len(), 20);
-    }
-
-    #[test]
-    fn all_ids_unique() {
-        let mut ids: Vec<&str> = SEED_CASES.iter().map(|c| c.id).collect();
-        ids.sort();
-        ids.dedup();
-        assert_eq!(ids.len(), SEED_CASES.len(), "duplicate benchmark IDs found");
-    }
-
-    #[test]
-    fn all_cases_have_expectations() {
-        for case in SEED_CASES {
+    fn assert_case_shape(cases: &[BenchmarkCase]) {
+        for case in cases {
             assert!(
                 !case.expect_abstract.is_empty(),
-                "{}: empty expect_abstract",
+                "{}: empty abstract",
                 case.id
             );
             assert!(
@@ -209,9 +249,37 @@ mod tests {
             );
             assert!(
                 !case.expect_keywords.is_empty(),
-                "{}: empty expect_keywords",
+                "{}: empty keywords",
                 case.id
             );
         }
+    }
+
+    #[test]
+    fn seed_cases_has_20_entries() {
+        assert_eq!(SEED_CASES.len(), 20);
+    }
+
+    #[test]
+    fn debugging_cases_has_10_entries() {
+        assert_eq!(DEBUGGING_V1_CASES.len(), 10);
+    }
+
+    #[test]
+    fn all_ids_unique() {
+        let mut ids: Vec<&str> = SEED_CASES
+            .iter()
+            .chain(DEBUGGING_V1_CASES.iter())
+            .map(|c| c.id)
+            .collect();
+        ids.sort_unstable();
+        ids.dedup();
+        assert_eq!(ids.len(), SEED_CASES.len() + DEBUGGING_V1_CASES.len());
+    }
+
+    #[test]
+    fn all_cases_have_expectations() {
+        assert_case_shape(SEED_CASES);
+        assert_case_shape(DEBUGGING_V1_CASES);
     }
 }

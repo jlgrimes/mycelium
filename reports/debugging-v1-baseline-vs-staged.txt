@@ -1,0 +1,33 @@
+
+=== Baseline (single-pass) ===
+Score: 34.4% | Actionability: 3.00/5 | Verification: 0.0% | Passed: 10/10
+
+  [PASS] debug-null-pointer        33% act=3/5 verify=no
+  [PASS] debug-memory-leak         33% act=3/5 verify=no
+  [PASS] debug-flaky-test          33% act=3/5 verify=no
+  [PASS] debug-cache-stale         33% act=3/5 verify=no
+  [PASS] debug-auth-regression     33% act=3/5 verify=no
+  [PASS] debug-db-deadlock         44% act=3/5 verify=no
+  [PASS] debug-queue-backlog       33% act=3/5 verify=no
+  [PASS] debug-schema-drift        33% act=3/5 verify=no
+  [PASS] debug-feature-flag        33% act=3/5 verify=no
+  [PASS] debug-latency-spike       33% act=3/5 verify=no
+
+=== Staged (pipeline) ===
+Score: 34.4% | Actionability: 3.00/5 | Verification: 0.0% | Passed: 10/10
+
+  [PASS] debug-null-pointer        33% act=3/5 verify=no
+  [PASS] debug-memory-leak         33% act=3/5 verify=no
+  [PASS] debug-flaky-test          33% act=3/5 verify=no
+  [PASS] debug-cache-stale         33% act=3/5 verify=no
+  [PASS] debug-auth-regression     33% act=3/5 verify=no
+  [PASS] debug-db-deadlock         44% act=3/5 verify=no
+  [PASS] debug-queue-backlog       33% act=3/5 verify=no
+  [PASS] debug-schema-drift        33% act=3/5 verify=no
+  [PASS] debug-feature-flag        33% act=3/5 verify=no
+  [PASS] debug-latency-spike       33% act=3/5 verify=no
+
+=== Comparison: Baseline vs Staged ===
+Baseline: 34.4% (act 3.00/5, verify 0.0%)
+Staged:   34.4% (act 3.00/5, verify 0.0%)
+Delta:    0.0pp
