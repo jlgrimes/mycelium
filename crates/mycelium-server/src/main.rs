@@ -44,6 +44,7 @@ async fn main() -> anyhow::Result<()> {
         .route("/health", get(health))
         .route("/solve", post(solve))
         .route("/solve/debug", post(solve_debug))
+        .route("/solve/debug/concise", post(solve_debug_concise))
         .with_state(state);
 
     let addr: SocketAddr = std::env::var("MYCELIUM_BIND")
@@ -70,13 +71,28 @@ async fn solve_debug(
     State(state): State<AppState>,
     Json(req): Json<ProblemRequest>,
 ) -> Result<Json<ProblemResponse>, (axum::http::StatusCode, Json<ErrorResponse>)> {
+    run_debug_route(&state, req.input, false).await
+}
+
+async fn solve_debug_concise(
+    State(state): State<AppState>,
+    Json(req): Json<ProblemRequest>,
+) -> Result<Json<ProblemResponse>, (axum::http::StatusCode, Json<ErrorResponse>)> {
+    run_debug_route(&state, req.input, true).await
+}
+
+async fn run_debug_route(
+    state: &AppState,
+    input: String,
+    concise: bool,
+) -> Result<Json<ProblemResponse>, (axum::http::StatusCode, Json<ErrorResponse>)> {
     let debug_prompt = format!(
         "You are solving a software debugging problem. Use Loop Escape Protocol: detect loop risk, pivot to an isomorphic frame, map back to code, and include explicit verification steps.\n\nReturn synthesis with sections:\n- Pivot rationale\n- Mapping confidence\n- Fix steps\n- Verification steps\n- Fallback pivot\n\nProblem:\n{}",
-        req.input
+        input
     );
 
-    let Json(resp) = run_with_input(&state, debug_prompt, "solve_debug").await?;
-    Ok(Json(enforce_debug_contract(resp)))
+    let Json(resp) = run_with_input(state, debug_prompt, "solve_debug").await?;
+    Ok(Json(enforce_debug_contract(resp, concise)))
 }
 
 async fn run_with_input(
@@ -95,35 +111,73 @@ async fn run_with_input(
     })
 }
 
-fn enforce_debug_contract(mut resp: ProblemResponse) -> ProblemResponse {
-    let synthesis_lower = resp.synthesis.to_lowercase();
+fn enforce_debug_contract(mut resp: ProblemResponse, concise: bool) -> ProblemResponse {
+    let confidence = derive_mapping_confidence(&resp);
 
-    if !synthesis_lower.contains("pivot") {
-        resp.synthesis = format!("Pivot rationale:\n- Shift to an isomorphic frame that avoids repeating the failed hypothesis.\n\n{}", resp.synthesis);
+    let synthesize = if concise {
+        format!(
+            "SYNTHESIZE:\n- Pivot: shift to a non-repeating isomorphic frame.\n- Fix: {}\n- Verification: run a focused reproducer test with explicit pass/fail checks.\n- Fallback: pivot to the next frame if checks fail.",
+            first_line(&resp.synthesis)
+        )
+    } else {
+        format_detailed_synthesize(&resp.synthesis)
+    };
+
+    resp.abstract_shape = format!(
+        "ABSTRACT:\n- {}",
+        non_empty_or(&resp.abstract_shape, "Debug loop with uncertain root cause")
+    );
+
+    resp.cross_domain_matches = resp
+        .cross_domain_matches
+        .iter()
+        .take(if concise { 3 } else { 5 })
+        .map(|m| format!("SEARCH: {m}"))
+        .collect();
+
+    if resp.cross_domain_matches.len() < 3 {
+        resp.cross_domain_matches
+            .push("SEARCH: Compiler pass ordering as a loop-breaking analog".to_string());
+        resp.cross_domain_matches
+            .push("SEARCH: Incident response triage as a hypothesis isolation analog".to_string());
+        resp.cross_domain_matches
+            .push("SEARCH: Medical differential diagnosis as a verification analog".to_string());
+        resp.cross_domain_matches.truncate(3);
     }
 
-    if !synthesis_lower.contains("mapping confidence") {
-        let confidence = derive_mapping_confidence(&resp);
-        resp.synthesis
-            .push_str(&format!("\n\nMapping confidence:\n- {confidence}"));
-    }
+    resp.mapping = format!(
+        "MAP:\n- {}\n- Mapping confidence: {confidence}",
+        non_empty_or(
+            &resp.mapping,
+            "Map repeating failure symptom -> instrumentation point -> isolating test"
+        )
+    );
 
-    if !synthesis_lower.contains("verification")
-        && !synthesis_lower.contains("assert")
-        && !synthesis_lower.contains("test")
-    {
-        resp.synthesis.push_str(
-            "\n\nVerification steps:\n- Add/Run a focused test that reproduces the original failure.\n- Confirm one explicit pass condition and one explicit fail condition.",
-        );
-    }
-
-    if !synthesis_lower.contains("fallback") {
-        resp.synthesis.push_str(
-            "\n\nFallback pivot:\n- If verification fails, pivot to the next closest isomorphic frame and avoid retrying the same failed fix pattern.",
-        );
-    }
-
+    resp.synthesis = synthesize;
     resp
+}
+
+fn format_detailed_synthesize(raw: &str) -> String {
+    format!(
+        "SYNTHESIZE:\nPivot rationale:\n- Shift to an isomorphic frame that avoids repeating the failed hypothesis.\n\nFix steps:\n- {}\n\nVerification steps:\n- Add/Run a focused test that reproduces the original failure.\n- Confirm one explicit pass condition and one explicit fail condition.\n\nFallback pivot:\n- If verification fails, pivot to the next closest isomorphic frame and avoid retrying the same failed fix pattern.",
+        first_line(raw)
+    )
+}
+
+fn non_empty_or<'a>(value: &'a str, fallback: &'a str) -> &'a str {
+    let trimmed = value.trim();
+    if trimmed.is_empty() {
+        fallback
+    } else {
+        trimmed
+    }
+}
+
+fn first_line(value: &str) -> &str {
+    value
+        .lines()
+        .find(|line| !line.trim().is_empty())
+        .unwrap_or("Create one isolated hypothesis and verify it before broad changes")
 }
 
 fn derive_mapping_confidence(resp: &ProblemResponse) -> &'static str {
@@ -131,13 +185,9 @@ fn derive_mapping_confidence(resp: &ProblemResponse) -> &'static str {
     let has_mapping = !resp.mapping.trim().is_empty();
 
     match (has_3_matches, has_mapping) {
-        (true, true) => "high — mapping has explicit structure and enough analog evidence.",
-        (true, false) | (false, true) => {
-            "medium — partly grounded, but one supporting signal is weak."
-        }
-        (false, false) => {
-            "low — sparse analog evidence and mapping detail; verify before applying."
-        }
+        (true, true) => "high",
+        (true, false) | (false, true) => "medium",
+        (false, false) => "low",
     }
 }
 
@@ -155,23 +205,24 @@ mod tests {
     }
 
     #[test]
-    fn adds_mapping_confidence_section_when_missing() {
-        let out = enforce_debug_contract(base_response());
-        assert!(out.synthesis.to_lowercase().contains("mapping confidence"));
+    fn debug_contract_has_required_stage_headers() {
+        let out = enforce_debug_contract(base_response(), false);
+        assert!(out.abstract_shape.starts_with("ABSTRACT:"));
+        assert!(out
+            .cross_domain_matches
+            .iter()
+            .all(|m| m.starts_with("SEARCH:")));
+        assert!(out.mapping.starts_with("MAP:"));
+        assert!(out.synthesis.starts_with("SYNTHESIZE:"));
+        assert!(out.synthesis.to_lowercase().contains("verification"));
     }
 
     #[test]
-    fn does_not_duplicate_mapping_confidence() {
+    fn concise_mode_trims_to_three_search_items() {
         let mut resp = base_response();
-        resp.synthesis.push_str("\n\nMapping confidence:\n- high");
-        let out = enforce_debug_contract(resp);
-        assert_eq!(
-            out.synthesis
-                .to_lowercase()
-                .matches("mapping confidence")
-                .count(),
-            1
-        );
+        resp.cross_domain_matches.push("d".to_string());
+        let out = enforce_debug_contract(resp, true);
+        assert_eq!(out.cross_domain_matches.len(), 3);
     }
 
     #[test]
@@ -179,6 +230,6 @@ mod tests {
         let mut resp = base_response();
         resp.cross_domain_matches.clear();
         resp.mapping.clear();
-        assert!(derive_mapping_confidence(&resp).starts_with("low"));
+        assert_eq!(derive_mapping_confidence(&resp), "low");
     }
 }

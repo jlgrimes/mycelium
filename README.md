@@ -8,7 +8,7 @@ Nature-themed, endpoint-agnostic isomorphic problem-solving engine.
 - `crates/mycelium-core` — provider trait
 - `crates/mycelium-engine` — orchestration
 - `crates/mycelium-providers` — local stub provider
-- `crates/mycelium-server` — HTTP API server (`/health`, `/solve`, `/solve/debug`)
+- `crates/mycelium-server` — HTTP API server (`/health`, `/solve`, `/solve/debug`, `/solve/debug/concise`)
 - `crates/mycelium-eval` — evaluation harness & benchmarks
 - `adapters/openclaw` — real OpenClaw-backed provider
 - `skills/mycelium` — OpenClaw skill wrapper docs
@@ -44,7 +44,23 @@ curl -X POST http://127.0.0.1:8787/solve \
 curl -X POST http://127.0.0.1:8787/solve/debug \
   -H 'content-type: application/json' \
   -d '{"input":"My reducer state is wrong after chained updates"}'
+
+# Concise debugging mode for fast operator action
+curl -X POST http://127.0.0.1:8787/solve/debug/concise \
+  -H 'content-type: application/json' \
+  -d '{"input":"My reducer state is wrong after chained updates"}'
 ```
+
+### Debug contract
+
+`/solve/debug` and `/solve/debug/concise` enforce output framing across the four pipeline stages:
+
+- `ABSTRACT:` problem shape
+- `SEARCH:` cross-domain analog matches
+- `MAP:` domain mapping + mapping confidence (`high|medium|low`)
+- `SYNTHESIZE:` fix steps + verification + fallback pivot
+
+`/solve/debug/concise` is intentionally terse and returns three SEARCH items max.
 
 ## Eval harness
 
