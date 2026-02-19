@@ -84,7 +84,8 @@ impl OpenClawProvider {
                             .with_context(|| format!("invalid chat response body: {text}"));
                     }
 
-                    let err = http_error_message(status, attempt + 1, total_attempts, &text, retry_after);
+                    let err =
+                        http_error_message(status, attempt + 1, total_attempts, &text, retry_after);
 
                     if is_retryable_status(status) && attempt < self.cfg.max_retries {
                         last_error = Some(err);
