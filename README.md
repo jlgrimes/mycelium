@@ -65,6 +65,12 @@ cargo test --workspace
 
 CI runs the same checks on pushes/PRs via `.github/workflows/ci.yml`.
 
+## Current Product Focus
+
+- Wedge #1: Debugging loops for software engineers
+- Spec: `docs/wedge-debugging.md`
+- Sprint plan: `docs/sprint-debugging-v1.md`
+
 ## Notes
 
 - Credentials stay in OpenClaw/runtime env, not frontend apps.
