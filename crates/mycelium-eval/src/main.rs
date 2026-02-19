@@ -1,7 +1,9 @@
 use mycelium_eval::{
-    BenchmarkSuite, EvalConfig, EvalRunner, RunMode, ScoreReport, DEBUGGING_V1_CASES, SEED_CASES,
+    actionability_delta, load_snapshot, write_snapshot, ActionabilitySnapshot, BenchmarkSuite,
+    EvalConfig, EvalRunner, RunMode, ScoreReport, DEBUGGING_V1_CASES, SEED_CASES,
 };
 use mycelium_providers::StubProvider;
+use std::path::Path;
 use std::sync::Arc;
 
 fn print_report(label: &str, report: &ScoreReport) {
@@ -66,6 +68,16 @@ fn parse_suite(args: &[String]) -> BenchmarkSuite {
     BenchmarkSuite::Seed
 }
 
+fn has_flag(args: &[String], flag: &str) -> bool {
+    args.iter().any(|arg| arg == flag)
+}
+
+fn parse_value(args: &[String], flag: &str) -> Option<String> {
+    args.windows(2)
+        .find(|w| w[0] == flag)
+        .map(|w| w[1].clone())
+}
+
 #[tokio::main]
 async fn main() -> anyhow::Result<()> {
     let args: Vec<String> = std::env::args().skip(1).collect();
@@ -76,7 +88,7 @@ async fn main() -> anyhow::Result<()> {
         .map(|w| w[1].split(',').map(String::from).collect::<Vec<_>>());
 
     let suite = parse_suite(&args);
-    let list_mode = args.iter().any(|a| a == "--list");
+    let list_mode = has_flag(&args, "--list");
     if list_mode {
         let cases = match suite {
             BenchmarkSuite::Seed => SEED_CASES,
@@ -92,6 +104,11 @@ async fn main() -> anyhow::Result<()> {
         return Ok(());
     }
 
+    let snapshot_enabled = has_flag(&args, "--snapshot");
+    let snapshot_dir = parse_value(&args, "--snapshot-dir")
+        .unwrap_or_else(|| "reports/actionability".to_string());
+    let delta_path = parse_value(&args, "--delta");
+
     let config = EvalConfig { filter, suite };
 
     let provider: Arc<dyn mycelium_core::ReasoningProvider> = Arc::new(StubProvider);
@@ -105,6 +122,38 @@ async fn main() -> anyhow::Result<()> {
     print_report("Baseline (single-pass)", &baseline_report);
     print_report("Staged (pipeline)", &staged_report);
     print_comparison(&baseline_report, &staged_report);
+
+    let snapshot = ActionabilitySnapshot::new(suite, baseline_report, staged_report);
+
+    if snapshot_enabled {
+        let path = write_snapshot(&snapshot, Path::new(&snapshot_dir))?;
+        println!("\nSnapshot written to {}", path.display());
+    }
+
+    if let Some(path) = delta_path {
+        let previous = load_snapshot(Path::new(&path))?;
+        if previous.suite_label() != snapshot.suite_label() {
+            println!(
+                "\nWarning: comparing suite '{}' against '{}'",
+                previous.suite_label(),
+                snapshot.suite_label()
+            );
+        }
+        let diff = actionability_delta(&snapshot, &previous);
+        println!("\n=== Actionability Delta vs {} ===", path);
+        println!(
+            "Baseline: score {:+.1}pp | actionability {:+.2} | verification {:+.1}pp",
+            diff.baseline_score_delta * 100.0,
+            diff.baseline_actionability_delta,
+            diff.baseline_verification_delta * 100.0
+        );
+        println!(
+            "Staged:   score {:+.1}pp | actionability {:+.2} | verification {:+.1}pp",
+            diff.staged_score_delta * 100.0,
+            diff.staged_actionability_delta,
+            diff.staged_verification_delta * 100.0
+        );
+    }
 
     Ok(())
 }
