@@ -8,3 +8,7 @@ license.workspace = true
 mycelium-core = { path = "../mycelium-core" }
 mycelium-types = { path = "../mycelium-types" }
 anyhow.workspace = true
+
+[dev-dependencies]
+async-trait.workspace = true
+tokio = { workspace = true, features = ["rt-multi-thread", "macros"] }
