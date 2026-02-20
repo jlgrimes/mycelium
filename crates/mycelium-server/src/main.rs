@@ -9,13 +9,13 @@ use axum::{
 };
 use contract_reporting::{ContractReportingSystem, PassRateDashboard};
 use debug_contract::DebugContractValidator;
-use std::sync::Mutex;
 use mycelium_core::ReasoningProvider;
 use mycelium_engine::Engine;
 use mycelium_providers::StubProvider;
 use mycelium_types::{ProblemRequest, ProblemResponse};
 use openclaw_adapter::OpenClawProvider;
 use serde::Serialize;
+use std::sync::Mutex;
 use std::{net::SocketAddr, sync::Arc};
 use tracing::info;
 
@@ -112,13 +112,13 @@ async fn run_debug_route(
 
     let Json(resp) = run_with_input(state, debug_prompt, "solve_debug").await?;
     let enforced = DebugContractValidator::enforce(resp, concise);
-    
+
     // Validate the enforced response
     let validation = DebugContractValidator::validate(&enforced);
     if !validation.valid {
         tracing::warn!("Debug contract validation failed: {:?}", validation.issues);
     }
-    
+
     Ok(Json(enforced))
 }
 

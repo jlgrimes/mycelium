@@ -39,11 +39,15 @@ pub struct ActionabilityComparisonRunner;
 
 impl ActionabilityComparisonRunner {
     /// Compare legacy vs calibrated scoring for a single case
-    pub fn compare_case(case: &BenchmarkCase, response: &ProblemResponse) -> ActionabilityComparison {
+    pub fn compare_case(
+        case: &BenchmarkCase,
+        response: &ProblemResponse,
+    ) -> ActionabilityComparison {
         let legacy_score = Self::legacy_actionability_score(response);
         let calibrated_analysis = CalibratedActionabilityScorer::analyze(response);
-        let calibrated_score = ((calibrated_analysis.overall_score as f32 / 2.0).round() as u8).min(5); // Scale to 0-5
-        
+        let calibrated_score =
+            ((calibrated_analysis.overall_score as f32 / 2.0).round() as u8).min(5); // Scale to 0-5
+
         let improvement_percentage = if legacy_score > 0 {
             ((calibrated_score as f32 - legacy_score as f32) / legacy_score as f32) * 100.0
         } else if calibrated_score > 0 {
@@ -66,7 +70,7 @@ impl ActionabilityComparisonRunner {
 
     /// Generate a report comparing legacy vs calibrated scoring across multiple cases and responses
     pub fn generate_report(
-        cases_and_responses: Vec<(&BenchmarkCase, &ProblemResponse)>
+        cases_and_responses: Vec<(&BenchmarkCase, &ProblemResponse)>,
     ) -> ActionabilityComparisonReport {
         let comparisons: Vec<ActionabilityComparison> = cases_and_responses
             .iter()
@@ -74,13 +78,21 @@ impl ActionabilityComparisonRunner {
             .collect();
 
         let legacy_mean = if !comparisons.is_empty() {
-            comparisons.iter().map(|c| c.legacy_score as f32).sum::<f32>() / comparisons.len() as f32
+            comparisons
+                .iter()
+                .map(|c| c.legacy_score as f32)
+                .sum::<f32>()
+                / comparisons.len() as f32
         } else {
             0.0
         };
 
         let calibrated_mean = if !comparisons.is_empty() {
-            comparisons.iter().map(|c| c.calibrated_score as f32).sum::<f32>() / comparisons.len() as f32
+            comparisons
+                .iter()
+                .map(|c| c.calibrated_score as f32)
+                .sum::<f32>()
+                / comparisons.len() as f32
         } else {
             0.0
         };
@@ -109,7 +121,9 @@ impl ActionabilityComparisonRunner {
         }
     }
 
-    fn calculate_improvement_distribution(comparisons: &[ActionabilityComparison]) -> ImprovementDistribution {
+    fn calculate_improvement_distribution(
+        comparisons: &[ActionabilityComparison],
+    ) -> ImprovementDistribution {
         let mut significant_improvement = 0;
         let mut moderate_improvement = 0;
         let mut minor_improvement = 0;
@@ -208,9 +222,9 @@ mod tests {
     fn comparison_shows_improvement_for_high_quality_response() {
         let case = &SEED_CASES[0];
         let response = ActionabilityComparisonRunner::create_high_actionability_response();
-        
+
         let comparison = ActionabilityComparisonRunner::compare_case(case, &response);
-        
+
         assert!(comparison.calibrated_score >= comparison.legacy_score);
         assert!(comparison.improvement_percentage >= 0.0);
         assert!(comparison.calibrated_analysis.overall_score > 0);
@@ -220,26 +234,29 @@ mod tests {
     fn comparison_handles_low_quality_response() {
         let case = &SEED_CASES[0];
         let response = ActionabilityComparisonRunner::create_low_actionability_response();
-        
+
         let comparison = ActionabilityComparisonRunner::compare_case(case, &response);
-        
+
         // Even low quality responses might get some improvement from calibrated scoring
         assert!(comparison.calibrated_analysis.overall_score <= 10); // Score should be within expected range
-        assert!(!comparison.calibrated_analysis.improvement_suggestions.is_empty());
+        assert!(!comparison
+            .calibrated_analysis
+            .improvement_suggestions
+            .is_empty());
     }
 
     #[test]
     fn report_generation_works_with_multiple_cases() {
         let high_response = ActionabilityComparisonRunner::create_high_actionability_response();
         let low_response = ActionabilityComparisonRunner::create_low_actionability_response();
-        
+
         let cases_and_responses = vec![
             (&SEED_CASES[0], &high_response),
             (&SEED_CASES[1], &low_response),
         ];
-        
+
         let report = ActionabilityComparisonRunner::generate_report(cases_and_responses);
-        
+
         assert_eq!(report.cases_total, 2);
         assert!(report.calibrated_mean >= report.legacy_mean);
         assert!(!report.comparisons.is_empty());
@@ -249,18 +266,21 @@ mod tests {
     fn improvement_distribution_categorizes_correctly() {
         let high_response = ActionabilityComparisonRunner::create_high_actionability_response();
         let low_response = ActionabilityComparisonRunner::create_low_actionability_response();
-        
+
         let cases_and_responses = vec![
             (&SEED_CASES[0], &high_response),
             (&SEED_CASES[1], &low_response),
         ];
-        
+
         let report = ActionabilityComparisonRunner::generate_report(cases_and_responses);
         let dist = &report.improvement_distribution;
-        
+
         // Should have some distribution of improvements
-        let total_categorized = dist.significant_improvement + dist.moderate_improvement + 
-                               dist.minor_improvement + dist.no_change + dist.regression;
+        let total_categorized = dist.significant_improvement
+            + dist.moderate_improvement
+            + dist.minor_improvement
+            + dist.no_change
+            + dist.regression;
         assert_eq!(total_categorized, report.cases_total);
     }
 
@@ -272,7 +292,7 @@ mod tests {
             mapping: "source -> target".to_string(),
             synthesis: "First, run a test and verify the result".to_string(),
         };
-        
+
         let legacy_score = ActionabilityComparisonRunner::legacy_actionability_score(&response);
         assert_eq!(legacy_score, 5); // Should get full score for this well-formed response
     }

@@ -15,44 +15,46 @@ pub struct DebugContractValidator;
 impl DebugContractValidator {
     pub fn validate(resp: &ProblemResponse) -> ContractValidation {
         let mut issues = Vec::new();
-        
+
         // Check ABSTRACT prefix
         if !resp.abstract_shape.starts_with("ABSTRACT:") {
             issues.push("abstract_shape must start with 'ABSTRACT:'".to_string());
         }
-        
+
         // Check SEARCH prefixes
         if resp.cross_domain_matches.len() < 3 {
             issues.push("cross_domain_matches must contain at least 3 items".to_string());
         }
-        
-        let search_prefix_violations = resp.cross_domain_matches.iter()
+
+        let search_prefix_violations = resp
+            .cross_domain_matches
+            .iter()
             .enumerate()
             .filter(|(_, m)| !m.starts_with("SEARCH:"))
             .count();
-            
+
         if search_prefix_violations > 0 {
             issues.push(format!(
-                "{} cross_domain_matches missing 'SEARCH:' prefix", 
+                "{} cross_domain_matches missing 'SEARCH:' prefix",
                 search_prefix_violations
             ));
         }
-        
+
         // Check MAP prefix
         if !resp.mapping.starts_with("MAP:") {
             issues.push("mapping must start with 'MAP:'".to_string());
         }
-        
+
         // Check SYNTHESIZE prefix and verification content
         if !resp.synthesis.starts_with("SYNTHESIZE:") {
             issues.push("synthesis must start with 'SYNTHESIZE:'".to_string());
         }
-        
+
         let synthesis_lower = resp.synthesis.to_lowercase();
         if !synthesis_lower.contains("verification") {
             issues.push("synthesis must contain verification steps".to_string());
         }
-        
+
         // Check for required synthesis sections
         let required_sections = ["pivot", "fix", "verification", "fallback"];
         for section in required_sections {
@@ -60,22 +62,22 @@ impl DebugContractValidator {
                 issues.push(format!("synthesis missing required section: {}", section));
             }
         }
-        
+
         // Check mapping confidence
         if !resp.mapping.contains("confidence:") {
             issues.push("mapping must include confidence assessment".to_string());
         }
-        
+
         let confidence = derive_mapping_confidence(resp);
         let valid = issues.is_empty();
-        
+
         ContractValidation {
             valid,
             issues,
             confidence: confidence.to_string(),
         }
     }
-    
+
     /// Enforce debug contract on a response, making it compliant.
     pub fn enforce(resp: ProblemResponse, concise: bool) -> ProblemResponse {
         let confidence = derive_mapping_confidence(&resp);
@@ -123,17 +125,23 @@ fn ensure_search_matches(matches: &[String], concise: bool) -> Vec<String> {
     // Fill in defaults if we don't have enough
     while result.len() < 3 {
         match result.len() {
-            0 => result.push("SEARCH: Compiler pass ordering as a loop-breaking analog".to_string()),
-            1 => result.push("SEARCH: Incident response triage as a hypothesis isolation analog".to_string()),
-            2 => result.push("SEARCH: Medical differential diagnosis as a verification analog".to_string()),
+            0 => {
+                result.push("SEARCH: Compiler pass ordering as a loop-breaking analog".to_string())
+            }
+            1 => result.push(
+                "SEARCH: Incident response triage as a hypothesis isolation analog".to_string(),
+            ),
+            2 => result.push(
+                "SEARCH: Medical differential diagnosis as a verification analog".to_string(),
+            ),
             _ => break,
         }
     }
-    
+
     if concise {
         result.truncate(3);
     }
-    
+
     result
 }
 
@@ -210,7 +218,7 @@ mod tests {
         let validation = DebugContractValidator::validate(&non_compliant_response());
         assert!(!validation.valid);
         assert!(!validation.issues.is_empty());
-        
+
         // Check for specific issues
         let issues_text = validation.issues.join(" ");
         assert!(issues_text.contains("ABSTRACT:"));
@@ -231,11 +239,11 @@ mod tests {
     fn concise_mode_limits_matches() {
         let mut resp = base_response();
         resp.cross_domain_matches = vec![
-            "a".to_string(), 
-            "b".to_string(), 
-            "c".to_string(), 
-            "d".to_string(), 
-            "e".to_string()
+            "a".to_string(),
+            "b".to_string(),
+            "c".to_string(),
+            "d".to_string(),
+            "e".to_string(),
         ];
         let enforced = DebugContractValidator::enforce(resp, true);
         assert_eq!(enforced.cross_domain_matches.len(), 3);

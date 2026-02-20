@@ -58,7 +58,7 @@ impl PrecisionGrade {
     pub fn as_str(&self) -> &'static str {
         match self {
             Self::Excellent => "excellent",
-            Self::Good => "good", 
+            Self::Good => "good",
             Self::Fair => "fair",
             Self::Poor => "poor",
         }
@@ -83,7 +83,10 @@ impl MappingPrecisionAnalyzer {
         let overall_precision_score = if enhanced_mappings.is_empty() {
             0.0
         } else {
-            enhanced_mappings.iter().map(|m| m.metrics.overall_precision).sum::<f32>() 
+            enhanced_mappings
+                .iter()
+                .map(|m| m.metrics.overall_precision)
+                .sum::<f32>()
                 / enhanced_mappings.len() as f32
         };
 
@@ -99,19 +102,24 @@ impl MappingPrecisionAnalyzer {
         search_out: &SearchOutput,
         mapping: &EntityMapping,
     ) -> PrecisionEntityMapping {
-        let semantic_similarity = Self::calculate_semantic_similarity(&mapping.source, &mapping.target);
+        let semantic_similarity =
+            Self::calculate_semantic_similarity(&mapping.source, &mapping.target);
         let structural_alignment = Self::calculate_structural_alignment(abstract_out, mapping);
         let domain_compatibility = Self::calculate_domain_compatibility(search_out, mapping);
-        let conceptual_distance = Self::calculate_conceptual_distance(&mapping.source, &mapping.target);
-        let transfer_viability = Self::calculate_transfer_viability(mapping, &semantic_similarity, &structural_alignment);
+        let conceptual_distance =
+            Self::calculate_conceptual_distance(&mapping.source, &mapping.target);
+        let transfer_viability = Self::calculate_transfer_viability(
+            mapping,
+            &semantic_similarity,
+            &structural_alignment,
+        );
 
-        let overall_precision = (
-            semantic_similarity * 0.3 +
-            structural_alignment * 0.25 +
-            domain_compatibility * 0.2 +
-            (1.0 - conceptual_distance) * 0.15 +
-            transfer_viability * 0.1
-        ).clamp(0.0, 1.0);
+        let overall_precision = (semantic_similarity * 0.3
+            + structural_alignment * 0.25
+            + domain_compatibility * 0.2
+            + (1.0 - conceptual_distance) * 0.15
+            + transfer_viability * 0.1)
+            .clamp(0.0, 1.0);
 
         let justification = Self::generate_justification(
             mapping,
@@ -142,26 +150,44 @@ impl MappingPrecisionAnalyzer {
     fn calculate_semantic_similarity(source: &str, target: &str) -> f32 {
         let source_lower = source.to_lowercase();
         let target_lower = target.to_lowercase();
-        
+
         // Simple similarity heuristics (in real implementation, might use embeddings)
         if source_lower == target_lower {
             return 1.0;
         }
-        
+
         // Check for common semantic patterns
         let semantic_clusters = [
             &["loop", "cycle", "iteration", "repetition", "recurring"] as &[&str],
             &["process", "method", "approach", "technique", "strategy"],
-            &["system", "framework", "structure", "architecture", "organization"],
+            &[
+                "system",
+                "framework",
+                "structure",
+                "architecture",
+                "organization",
+            ],
             &["pattern", "template", "model", "schema", "blueprint"],
-            &["feedback", "response", "reaction", "adjustment", "correction"],
-            &["optimization", "improvement", "enhancement", "refinement", "tuning"],
+            &[
+                "feedback",
+                "response",
+                "reaction",
+                "adjustment",
+                "correction",
+            ],
+            &[
+                "optimization",
+                "improvement",
+                "enhancement",
+                "refinement",
+                "tuning",
+            ],
         ];
 
         for cluster in &semantic_clusters {
             let source_in_cluster = cluster.iter().any(|&word| source_lower.contains(word));
             let target_in_cluster = cluster.iter().any(|&word| target_lower.contains(word));
-            
+
             if source_in_cluster && target_in_cluster {
                 return 0.8;
             }
@@ -170,13 +196,14 @@ impl MappingPrecisionAnalyzer {
         // Check for shared keywords
         let source_words: Vec<&str> = source_lower.split_whitespace().collect();
         let target_words: Vec<&str> = target_lower.split_whitespace().collect();
-        
-        let shared_words = source_words.iter()
+
+        let shared_words = source_words
+            .iter()
             .filter(|word| target_words.contains(word))
             .count();
-            
+
         let total_unique_words = source_words.len() + target_words.len() - shared_words;
-        
+
         if total_unique_words > 0 {
             (shared_words as f32 / total_unique_words as f32).min(0.7)
         } else {
@@ -184,17 +211,24 @@ impl MappingPrecisionAnalyzer {
         }
     }
 
-    fn calculate_structural_alignment(abstract_out: &AbstractOutput, mapping: &EntityMapping) -> f32 {
+    fn calculate_structural_alignment(
+        abstract_out: &AbstractOutput,
+        mapping: &EntityMapping,
+    ) -> f32 {
         let abstract_lower = abstract_out.abstract_shape.to_lowercase();
         let domain_lower = abstract_out.domain.to_lowercase();
-        
-        let source_relevance = if abstract_lower.contains(&mapping.source.to_lowercase()) 
-            || domain_lower.contains(&mapping.source.to_lowercase()) {
+
+        let source_relevance = if abstract_lower.contains(&mapping.source.to_lowercase())
+            || domain_lower.contains(&mapping.source.to_lowercase())
+        {
             0.9
         } else {
             // Check for conceptual alignment
-            if (abstract_lower.contains("pattern") && mapping.source.to_lowercase().contains("pattern")) ||
-               (abstract_lower.contains("system") && mapping.source.to_lowercase().contains("system")) {
+            if (abstract_lower.contains("pattern")
+                && mapping.source.to_lowercase().contains("pattern"))
+                || (abstract_lower.contains("system")
+                    && mapping.source.to_lowercase().contains("system"))
+            {
                 0.7
             } else {
                 0.3
@@ -214,11 +248,13 @@ impl MappingPrecisionAnalyzer {
 
     fn calculate_domain_compatibility(search_out: &SearchOutput, mapping: &EntityMapping) -> f32 {
         // Check if source/target concepts appear in the cross-domain matches
-        let relevant_domains = search_out.matches.iter()
+        let relevant_domains = search_out
+            .matches
+            .iter()
             .filter(|m| {
                 let desc_lower = m.description.to_lowercase();
-                desc_lower.contains(&mapping.source.to_lowercase()) ||
-                desc_lower.contains(&mapping.target.to_lowercase())
+                desc_lower.contains(&mapping.source.to_lowercase())
+                    || desc_lower.contains(&mapping.target.to_lowercase())
             })
             .count();
 
@@ -226,11 +262,12 @@ impl MappingPrecisionAnalyzer {
             (relevant_domains as f32 / search_out.matches.len() as f32).min(0.9) + 0.1
         } else {
             // Check for domain diversity (good cross-domain coverage)
-            let unique_domains: std::collections::HashSet<&str> = search_out.matches
+            let unique_domains: std::collections::HashSet<&str> = search_out
+                .matches
                 .iter()
                 .map(|m| m.domain.as_str())
                 .collect();
-            
+
             if unique_domains.len() >= 3 {
                 0.6 // Good diversity even without direct matches
             } else {
@@ -252,11 +289,19 @@ impl MappingPrecisionAnalyzer {
         // Abstract vs concrete mismatch increases distance
         let abstract_terms = ["pattern", "system", "framework", "approach", "method"];
         let concrete_terms = ["tool", "device", "machine", "product", "object"];
-        
-        let source_abstract = abstract_terms.iter().any(|&term| source_lower.contains(term));
-        let target_abstract = abstract_terms.iter().any(|&term| target_lower.contains(term));
-        let source_concrete = concrete_terms.iter().any(|&term| source_lower.contains(term));
-        let target_concrete = concrete_terms.iter().any(|&term| target_lower.contains(term));
+
+        let source_abstract = abstract_terms
+            .iter()
+            .any(|&term| source_lower.contains(term));
+        let target_abstract = abstract_terms
+            .iter()
+            .any(|&term| target_lower.contains(term));
+        let source_concrete = concrete_terms
+            .iter()
+            .any(|&term| source_lower.contains(term));
+        let target_concrete = concrete_terms
+            .iter()
+            .any(|&term| target_lower.contains(term));
 
         if (source_abstract && target_concrete) || (source_concrete && target_abstract) {
             0.7 // High conceptual distance
@@ -278,14 +323,14 @@ impl MappingPrecisionAnalyzer {
         let relation_viability = match mapping.relation.to_lowercase().as_str() {
             "implements" | "enables" | "creates" => 0.9, // High actionability
             "maps_to" | "corresponds_to" | "analogous_to" => 0.8, // Good structural transfer
-            "similar_to" | "relates_to" => 0.6, // Medium transfer potential
-            "triggers" | "causes" => 0.7, // Good causal transfer
+            "similar_to" | "relates_to" => 0.6,          // Medium transfer potential
+            "triggers" | "causes" => 0.7,                // Good causal transfer
             _ => 0.5,
         };
 
         // Combine with semantic and structural factors
         let base_score = (*semantic_sim + *structural_alignment + relation_viability) / 3.0;
-        
+
         // Bonus for high-confidence mappings
         if let Some(original_conf) = mapping.confidence {
             (base_score + original_conf) / 2.0
@@ -336,8 +381,11 @@ impl MappingPrecisionAnalyzer {
             _ => &format!("{} relationship", mapping.relation),
         };
 
-        let base = format!("{} -> {} via {}", mapping.source, mapping.target, relation_desc);
-        
+        let base = format!(
+            "{} -> {} via {}",
+            mapping.source, mapping.target, relation_desc
+        );
+
         if reasons.is_empty() {
             format!("{} (limited precision indicators)", base)
         } else {
@@ -401,11 +449,8 @@ mod tests {
         let search_out = sample_search_output();
         let basic_map = sample_basic_mapping();
 
-        let enhanced = MappingPrecisionAnalyzer::enhance_mappings(
-            &abstract_out, 
-            &search_out, 
-            &basic_map
-        );
+        let enhanced =
+            MappingPrecisionAnalyzer::enhance_mappings(&abstract_out, &search_out, &basic_map);
 
         assert_eq!(enhanced.mappings.len(), 2);
         assert!(enhanced.overall_precision_score > 0.0);
@@ -423,13 +468,10 @@ mod tests {
     #[test]
     fn semantic_similarity_detects_related_terms() {
         let sim1 = MappingPrecisionAnalyzer::calculate_semantic_similarity(
-            "practice loop", 
-            "training cycle"
+            "practice loop",
+            "training cycle",
         );
-        let sim2 = MappingPrecisionAnalyzer::calculate_semantic_similarity(
-            "elephant", 
-            "bicycle"
-        );
+        let sim2 = MappingPrecisionAnalyzer::calculate_semantic_similarity("elephant", "bicycle");
 
         assert!(sim1 > sim2);
         assert!(sim1 > 0.5);
@@ -438,10 +480,22 @@ mod tests {
 
     #[test]
     fn precision_grade_categorizes_scores_correctly() {
-        assert!(matches!(PrecisionGrade::from_score(0.95), PrecisionGrade::Excellent));
-        assert!(matches!(PrecisionGrade::from_score(0.75), PrecisionGrade::Good));
-        assert!(matches!(PrecisionGrade::from_score(0.55), PrecisionGrade::Fair));
-        assert!(matches!(PrecisionGrade::from_score(0.25), PrecisionGrade::Poor));
+        assert!(matches!(
+            PrecisionGrade::from_score(0.95),
+            PrecisionGrade::Excellent
+        ));
+        assert!(matches!(
+            PrecisionGrade::from_score(0.75),
+            PrecisionGrade::Good
+        ));
+        assert!(matches!(
+            PrecisionGrade::from_score(0.55),
+            PrecisionGrade::Fair
+        ));
+        assert!(matches!(
+            PrecisionGrade::from_score(0.25),
+            PrecisionGrade::Poor
+        ));
     }
 
     #[test]

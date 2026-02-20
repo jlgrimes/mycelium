@@ -64,10 +64,14 @@ async fn main() -> anyhow::Result<()> {
     }
 
     match cli.command {
-        Commands::Report { days, output, format } => {
+        Commands::Report {
+            days,
+            output,
+            format,
+        } => {
             let report = reporting_system.generate_report(days);
             let format = format.as_deref().unwrap_or("json");
-            
+
             let output_content = match format {
                 "html" => PassRateDashboard::generate_html(&report),
                 "json" => serde_json::to_string_pretty(&report)?,
@@ -86,13 +90,13 @@ async fn main() -> anyhow::Result<()> {
             let eval_data = fs::read_to_string(&eval_file)?;
             let results = parse_eval_results(&eval_data)?;
             let source = source.unwrap_or_else(|| "eval".to_string());
-            
+
             let mut recorded = 0;
             for (case_id, input, response) in results {
                 reporting_system.record_validation(case_id, input, response, source.clone());
                 recorded += 1;
             }
-            
+
             println!("Recorded {} validation results", recorded);
             save_data(&reporting_system, data_file)?;
         }
@@ -103,7 +107,8 @@ async fn main() -> anyhow::Result<()> {
         }
         Commands::Import { input } => {
             let data = fs::read_to_string(&input)?;
-            let count = reporting_system.import_results(&data)
+            let count = reporting_system
+                .import_results(&data)
                 .map_err(|e| anyhow::anyhow!("Import failed: {}", e))?;
             println!("Imported {} validation results", count);
             save_data(&reporting_system, data_file)?;
@@ -119,7 +124,8 @@ async fn main() -> anyhow::Result<()> {
 }
 
 fn generate_text_report(report: &mycelium_server::contract_reporting::PassRateReport) -> String {
-    format!(r#"
+    format!(
+        r#"
 === Mycelium Debug Contract Pass Rate Report ===
 
 Generated: {}
@@ -154,22 +160,29 @@ Period: {} days
         } else {
             "❌ Below Target"
         },
-        report.daily_breakdown
+        report
+            .daily_breakdown
             .iter()
-            .map(|day| format!("  {} - {}/{} ({:.1}%)", day.date, day.passed_validations, day.total_validations, day.pass_rate_percentage))
+            .map(|day| format!(
+                "  {} - {}/{} ({:.1}%)",
+                day.date, day.passed_validations, day.total_validations, day.pass_rate_percentage
+            ))
             .collect::<Vec<_>>()
             .join("\n"),
         if report.overall_stats.common_failure_patterns.is_empty() {
             "  None detected".to_string()
         } else {
-            report.overall_stats.common_failure_patterns
+            report
+                .overall_stats
+                .common_failure_patterns
                 .iter()
                 .take(5)
                 .map(|pattern| format!("  {}x {}", pattern.frequency, pattern.issue_type))
                 .collect::<Vec<_>>()
                 .join("\n")
         },
-        report.improvement_recommendations
+        report
+            .improvement_recommendations
             .iter()
             .map(|rec| format!("  • {}", rec))
             .collect::<Vec<_>>()
@@ -177,10 +190,17 @@ Period: {} days
         if report.recent_failures.is_empty() {
             "  None".to_string()
         } else {
-            report.recent_failures
+            report
+                .recent_failures
                 .iter()
                 .take(5)
-                .map(|failure| format!("  {} - {}", failure.case_id, failure.validation.issues.join(", ")))
+                .map(|failure| {
+                    format!(
+                        "  {} - {}",
+                        failure.case_id,
+                        failure.validation.issues.join(", ")
+                    )
+                })
                 .collect::<Vec<_>>()
                 .join("\n")
         }
@@ -196,7 +216,7 @@ fn parse_eval_results(eval_data: &str) -> anyhow::Result<Vec<(String, String, Pr
     // This would parse evaluation results from various formats
     // For now, assume JSON format with evaluation results
     let mut results = Vec::new();
-    
+
     // Try to parse as a JSON array of evaluation results
     if let Ok(eval_results) = serde_json::from_str::<serde_json::Value>(eval_data) {
         if let Some(cases) = eval_results.as_array() {
@@ -204,20 +224,18 @@ fn parse_eval_results(eval_data: &str) -> anyhow::Result<Vec<(String, String, Pr
                 if let (Some(case_id), Some(input), Some(response_data)) = (
                     case.get("case_id").and_then(|v| v.as_str()),
                     case.get("input").and_then(|v| v.as_str()),
-                    case.get("response")
+                    case.get("response"),
                 ) {
-                    if let Ok(response) = serde_json::from_value::<ProblemResponse>(response_data.clone()) {
-                        results.push((
-                            case_id.to_string(),
-                            input.to_string(), 
-                            response
-                        ));
+                    if let Ok(response) =
+                        serde_json::from_value::<ProblemResponse>(response_data.clone())
+                    {
+                        results.push((case_id.to_string(), input.to_string(), response));
                     }
                 }
             }
         }
     }
-    
+
     if results.is_empty() {
         // Generate sample data for testing
         results.push((
@@ -234,7 +252,7 @@ fn parse_eval_results(eval_data: &str) -> anyhow::Result<Vec<(String, String, Pr
                 synthesis: "SYNTHESIZE:\nPivot rationale:\n- Shift focus from symptom to root cause\nFix steps:\n- Use memory profilers\nVerification steps:\n- Monitor memory usage over time\nFallback pivot:\n- Try different profiling tools".to_string(),
             }
         ));
-        
+
         results.push((
             "sample-case-2".to_string(),
             "Fix race condition bug".to_string(),
@@ -244,11 +262,11 @@ fn parse_eval_results(eval_data: &str) -> anyhow::Result<Vec<(String, String, Pr
                     "Traffic coordination".to_string(), // Invalid - missing SEARCH:
                 ],
                 mapping: "timing issues".to_string(), // Invalid - missing MAP:
-                synthesis: "Add locks".to_string(), // Invalid - missing SYNTHESIZE:
-            }
+                synthesis: "Add locks".to_string(),   // Invalid - missing SYNTHESIZE:
+            },
         ));
     }
-    
+
     Ok(results)
 }
 
@@ -259,13 +277,13 @@ async fn run_evaluation_and_record(
 ) -> anyhow::Result<()> {
     // This would integrate with the evaluation system to run actual evaluations
     // For now, generate some mock evaluation results
-    
+
     let mock_cases = vec![
         ("eval-case-1", "Debug performance issue"),
         ("eval-case-2", "Fix compilation error"),
         ("eval-case-3", "Resolve integration test failure"),
     ];
-    
+
     for (case_id, input) in &mock_cases {
         // Generate a mock response (in real implementation, this would call the provider)
         let response = if case_id.contains("1") || case_id.contains("3") {
@@ -289,7 +307,7 @@ async fn run_evaluation_and_record(
                 synthesis: "Just debug it".to_string(),
             }
         };
-        
+
         reporting_system.record_validation(
             case_id.to_string(),
             input.to_string(),
@@ -297,7 +315,7 @@ async fn run_evaluation_and_record(
             "eval".to_string(),
         );
     }
-    
+
     println!("Recorded evaluation results for {} cases", mock_cases.len());
     Ok(())
 }

@@ -368,7 +368,10 @@ mod tests {
             .collect();
         ids.sort_unstable();
         ids.dedup();
-        assert_eq!(ids.len(), SEED_CASES.len() + DEBUGGING_V1_CASES.len() + ISOMORPHIC_TRANSFER_CASES.len());
+        assert_eq!(
+            ids.len(),
+            SEED_CASES.len() + DEBUGGING_V1_CASES.len() + ISOMORPHIC_TRANSFER_CASES.len()
+        );
     }
 
     #[test]

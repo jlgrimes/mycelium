@@ -90,7 +90,7 @@ impl ContractReportingSystem {
             validation,
             source,
         };
-        
+
         self.results.push(result.clone());
         result
     }
@@ -103,7 +103,8 @@ impl ContractReportingSystem {
             .as_secs();
         let period_start = now - (days_back as u64 * 24 * 60 * 60);
 
-        let period_results: Vec<&ValidationResult> = self.results
+        let period_results: Vec<&ValidationResult> = self
+            .results
             .iter()
             .filter(|r| r.timestamp >= period_start)
             .collect();
@@ -170,9 +171,13 @@ impl ContractReportingSystem {
         }
     }
 
-    fn calculate_daily_breakdown(&self, results: &[&ValidationResult], _period_start: u64) -> Vec<DailyStats> {
+    fn calculate_daily_breakdown(
+        &self,
+        results: &[&ValidationResult],
+        _period_start: u64,
+    ) -> Vec<DailyStats> {
         let mut daily_results: HashMap<String, Vec<&ValidationResult>> = HashMap::new();
-        
+
         for result in results {
             let date = Self::timestamp_to_date(result.timestamp);
             daily_results.entry(date).or_default().push(result);
@@ -202,13 +207,17 @@ impl ContractReportingSystem {
         daily_stats
     }
 
-    fn get_recent_failures(&self, results: &[&ValidationResult], limit: usize) -> Vec<ValidationResult> {
+    fn get_recent_failures(
+        &self,
+        results: &[&ValidationResult],
+        limit: usize,
+    ) -> Vec<ValidationResult> {
         let mut failures: Vec<ValidationResult> = results
             .iter()
             .filter(|r| !r.validation.valid)
             .map(|r| (*r).clone())
             .collect();
-        
+
         failures.sort_by(|a, b| b.timestamp.cmp(&a.timestamp));
         failures.into_iter().take(limit).collect()
     }
@@ -224,7 +233,8 @@ impl ContractReportingSystem {
         }
 
         // Analyze common failure patterns and suggest improvements
-        let most_common_failures: Vec<_> = stats.common_failure_patterns
+        let most_common_failures: Vec<_> = stats
+            .common_failure_patterns
             .iter()
             .filter(|p| p.frequency > 1)
             .collect();
@@ -242,7 +252,10 @@ impl ContractReportingSystem {
         }
 
         if recommendations.is_empty() {
-            recommendations.push("Pass rate meets or exceeds target. Continue monitoring for regressions.".to_string());
+            recommendations.push(
+                "Pass rate meets or exceeds target. Continue monitoring for regressions."
+                    .to_string(),
+            );
         }
 
         recommendations
@@ -285,12 +298,13 @@ impl PassRateDashboard {
         let pass_rate_color = if report.overall_stats.pass_rate_percentage >= 95.0 {
             "green"
         } else if report.overall_stats.pass_rate_percentage >= 90.0 {
-            "orange" 
+            "orange"
         } else {
             "red"
         };
 
-        format!(r#"
+        format!(
+            r#"
 <!DOCTYPE html>
 <html>
 <head>
@@ -353,17 +367,17 @@ impl PassRateDashboard {
 </body>
 </html>
         "#,
-        pass_rate_color,
-        Self::format_timestamp(report.generated_at),
-        (report.period_end - report.period_start) / (24 * 60 * 60),
-        report.overall_stats.pass_rate_percentage,
-        report.overall_stats.passed_validations,
-        report.overall_stats.total_validations,
-        Self::generate_daily_chart(&report.daily_breakdown),
-        Self::generate_daily_table(&report.daily_breakdown),
-        Self::generate_failure_patterns(&report.overall_stats.common_failure_patterns),
-        Self::generate_recommendations(&report.improvement_recommendations),
-        Self::generate_recent_failures(&report.recent_failures)
+            pass_rate_color,
+            Self::format_timestamp(report.generated_at),
+            (report.period_end - report.period_start) / (24 * 60 * 60),
+            report.overall_stats.pass_rate_percentage,
+            report.overall_stats.passed_validations,
+            report.overall_stats.total_validations,
+            Self::generate_daily_chart(&report.daily_breakdown),
+            Self::generate_daily_table(&report.daily_breakdown),
+            Self::generate_failure_patterns(&report.overall_stats.common_failure_patterns),
+            Self::generate_recommendations(&report.improvement_recommendations),
+            Self::generate_recent_failures(&report.recent_failures)
         )
     }
 
@@ -399,7 +413,10 @@ impl PassRateDashboard {
             .map(|day| {
                 format!(
                     "<tr><td>{}</td><td>{}</td><td>{}</td><td>{:.1}%</td></tr>",
-                    day.date, day.total_validations, day.passed_validations, day.pass_rate_percentage
+                    day.date,
+                    day.total_validations,
+                    day.passed_validations,
+                    day.pass_rate_percentage
                 )
             })
             .collect::<Vec<_>>()
@@ -484,18 +501,21 @@ mod tests {
     #[test]
     fn reporting_system_records_validations() {
         let mut system = ContractReportingSystem::new();
-        
+
         let result = system.record_validation(
             "test-case-1".to_string(),
             "test input".to_string(),
             sample_response(true),
             "test".to_string(),
         );
-        
+
         if !result.validation.valid {
-            println!("Validation failed with issues: {:?}", result.validation.issues);
+            println!(
+                "Validation failed with issues: {:?}",
+                result.validation.issues
+            );
         }
-        
+
         assert!(result.validation.valid);
         assert_eq!(system.get_results_count(), 1);
     }
@@ -503,7 +523,7 @@ mod tests {
     #[test]
     fn report_calculates_pass_rates_correctly() {
         let mut system = ContractReportingSystem::new();
-        
+
         // Add valid results
         for i in 0..8 {
             system.record_validation(
@@ -513,8 +533,8 @@ mod tests {
                 "test".to_string(),
             );
         }
-        
-        // Add invalid results  
+
+        // Add invalid results
         for i in 0..2 {
             system.record_validation(
                 format!("invalid-case-{}", i),
@@ -523,7 +543,7 @@ mod tests {
                 "test".to_string(),
             );
         }
-        
+
         let report = system.generate_report(7);
         assert_eq!(report.overall_stats.total_validations, 10);
         assert_eq!(report.overall_stats.passed_validations, 8);
@@ -539,10 +559,10 @@ mod tests {
             sample_response(true),
             "test".to_string(),
         );
-        
+
         let report = system.generate_report(7);
         let html = PassRateDashboard::generate_html(&report);
-        
+
         assert!(html.contains("<!DOCTYPE html>"));
         assert!(html.contains("Pass Rate Dashboard"));
         assert!(html.contains("100.0%")); // Should show 100% pass rate

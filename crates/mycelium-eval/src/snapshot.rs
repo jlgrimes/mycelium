@@ -56,7 +56,10 @@ pub struct ActionabilityDelta {
     pub staged_verification_delta: f64,
 }
 
-pub fn delta(current: &ActionabilitySnapshot, previous: &ActionabilitySnapshot) -> ActionabilityDelta {
+pub fn delta(
+    current: &ActionabilitySnapshot,
+    previous: &ActionabilitySnapshot,
+) -> ActionabilityDelta {
     ActionabilityDelta {
         baseline_score_delta: current.baseline.mean_score - previous.baseline.mean_score,
         baseline_actionability_delta: current.baseline.mean_actionability

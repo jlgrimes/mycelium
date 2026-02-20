@@ -1,6 +1,7 @@
 use mycelium_eval::{
     actionability_delta, load_snapshot, write_snapshot, ActionabilitySnapshot, BenchmarkSuite,
-    EvalConfig, EvalRunner, RunMode, ScoreReport, DEBUGGING_V1_CASES, ISOMORPHIC_TRANSFER_CASES, SEED_CASES,
+    EvalConfig, EvalRunner, RunMode, ScoreReport, DEBUGGING_V1_CASES, ISOMORPHIC_TRANSFER_CASES,
+    SEED_CASES,
 };
 use mycelium_providers::StubProvider;
 use std::path::Path;
@@ -75,9 +76,7 @@ fn has_flag(args: &[String], flag: &str) -> bool {
 }
 
 fn parse_value(args: &[String], flag: &str) -> Option<String> {
-    args.windows(2)
-        .find(|w| w[0] == flag)
-        .map(|w| w[1].clone())
+    args.windows(2).find(|w| w[0] == flag).map(|w| w[1].clone())
 }
 
 #[tokio::main]
@@ -108,8 +107,8 @@ async fn main() -> anyhow::Result<()> {
     }
 
     let snapshot_enabled = has_flag(&args, "--snapshot");
-    let snapshot_dir = parse_value(&args, "--snapshot-dir")
-        .unwrap_or_else(|| "reports/actionability".to_string());
+    let snapshot_dir =
+        parse_value(&args, "--snapshot-dir").unwrap_or_else(|| "reports/actionability".to_string());
     let delta_path = parse_value(&args, "--delta");
 
     let config = EvalConfig { filter, suite };
