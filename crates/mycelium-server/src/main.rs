@@ -1,13 +1,10 @@
-mod contract_reporting;
 mod debug_contract;
 
 use axum::{
-    extract::{Query, State},
-    response::Html,
+    extract::State,
     routing::{get, post},
     Json, Router,
 };
-use contract_reporting::{ContractReportingSystem, PassRateDashboard};
 use debug_contract::DebugContractValidator;
 use mycelium_core::ReasoningProvider;
 use mycelium_engine::Engine;
@@ -15,14 +12,12 @@ use mycelium_providers::StubProvider;
 use mycelium_types::{ProblemRequest, ProblemResponse};
 use openclaw_adapter::OpenClawProvider;
 use serde::Serialize;
-use std::sync::Mutex;
 use std::{net::SocketAddr, sync::Arc};
 use tracing::info;
 
 #[derive(Clone)]
 struct AppState {
     engine: Arc<Engine>,
-    reporting_system: Arc<Mutex<ContractReportingSystem>>,
 }
 
 #[derive(Serialize)]
@@ -46,7 +41,6 @@ async fn main() -> anyhow::Result<()> {
 
     let state = AppState {
         engine: Arc::new(Engine::new(provider)),
-        reporting_system: Arc::new(Mutex::new(ContractReportingSystem::new())),
     };
 
     let app = Router::new()
@@ -55,9 +49,6 @@ async fn main() -> anyhow::Result<()> {
         .route("/solve/debug", post(solve_debug))
         .route("/solve/debug/concise", post(solve_debug_concise))
         .route("/debug/validate", post(validate_debug_contract))
-        .route("/debug/report", get(debug_pass_rate_report))
-        .route("/debug/dashboard", get(debug_pass_rate_dashboard))
-        .route("/debug/record", post(record_debug_validation))
         .with_state(state);
 
     let addr: SocketAddr = std::env::var("MYCELIUM_BIND")
@@ -112,13 +103,13 @@ async fn run_debug_route(
 
     let Json(resp) = run_with_input(state, debug_prompt, "solve_debug").await?;
     let enforced = DebugContractValidator::enforce(resp, concise);
-
+    
     // Validate the enforced response
     let validation = DebugContractValidator::validate(&enforced);
     if !validation.valid {
         tracing::warn!("Debug contract validation failed: {:?}", validation.issues);
     }
-
+    
     Ok(Json(enforced))
 }
 
@@ -139,54 +130,6 @@ async fn run_with_input(
 }
 
 // Debug contract functions moved to debug_contract module
-
-#[derive(serde::Deserialize)]
-struct ReportQuery {
-    days: Option<u32>,
-}
-
-#[derive(serde::Deserialize)]
-struct RecordValidationRequest {
-    case_id: String,
-    input: String,
-    response: ProblemResponse,
-    source: Option<String>,
-}
-
-async fn debug_pass_rate_report(
-    State(state): State<AppState>,
-    Query(params): Query<ReportQuery>,
-) -> Json<contract_reporting::PassRateReport> {
-    let days = params.days.unwrap_or(7);
-    let reporting_system = state.reporting_system.lock().unwrap();
-    let report = reporting_system.generate_report(days);
-    Json(report)
-}
-
-async fn debug_pass_rate_dashboard(
-    State(state): State<AppState>,
-    Query(params): Query<ReportQuery>,
-) -> Html<String> {
-    let days = params.days.unwrap_or(7);
-    let reporting_system = state.reporting_system.lock().unwrap();
-    let report = reporting_system.generate_report(days);
-    let html = PassRateDashboard::generate_html(&report);
-    Html(html)
-}
-
-async fn record_debug_validation(
-    State(state): State<AppState>,
-    Json(req): Json<RecordValidationRequest>,
-) -> Json<contract_reporting::ValidationResult> {
-    let mut reporting_system = state.reporting_system.lock().unwrap();
-    let result = reporting_system.record_validation(
-        req.case_id,
-        req.input,
-        req.response,
-        req.source.unwrap_or_else(|| "api".to_string()),
-    );
-    Json(result)
-}
 
 #[cfg(test)]
 mod tests {
